@@ -1,4 +1,7 @@
-https://yashika807.github.io/DSA-PatternWise/fast-and-slow/circular-array-loop.html
+**Interactive Visual:** [circular-array-loop.html]
+
+(https://yashika807.github.io/DSA-PatternWise/fast-and-slow/circular-array-loop.html)
+
 Circular Array Loop (LC 457)
 
 Pattern: Fast & Slow Pointers (Floyd's Cycle Detection)
