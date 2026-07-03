@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two-Track Debugger · Maximum Subarray Sum with One Deletion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16202B;
+    --paper:#E7EAED;
+    --panel:#FCFDFE;
+    --line:#D4DAE0;
+    --muted:#5C6B7A;
+    --blue:#1E6FB8;        /* noDel */
+    --blue-soft:rgba(30,111,184,.13);
+    --blue-ring:rgba(30,111,184,.45);
+    --magenta:#B5179E;     /* oneDel */
+    --magenta-soft:rgba(181,23,158,.13);
+    --magenta-ring:rgba(181,23,158,.45);
+    --green:#0E8F63;       /* res / answer */
+    --green-soft:rgba(14,143,99,.14);
+    --amber:#C77800;       /* current i */
+    --amber-soft:rgba(199,120,0,.16);
+    --shadow:0 1px 2px rgba(22,32,43,.06),0 8px 24px rgba(22,32,43,.07);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      linear-gradient(0deg,rgba(22,32,43,.02),rgba(22,32,43,.02)),
+      var(--paper);
+    background-image:
+      linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:26px 26px;
+    background-position:center;
+    color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding:24px 16px 64px;
+  }
+  .wrap{max-width:1120px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  header.top{margin-bottom:22px}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--magenta)}
+  h1{
+    font-family:"Space Grotesk",sans-serif;font-weight:700;
+    font-size:clamp(26px,4.4vw,42px);line-height:1.05;margin:0 0 8px;
+    letter-spacing:-.02em;
+  }
+  h1 .em{color:var(--magenta)}
+  .sub{color:var(--muted);max-width:60ch;font-size:15px}
+  .sub code{font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--blue-soft);color:var(--blue);padding:1px 6px;border-radius:5px}
+
+  /* ---------- controls bar (input) ---------- */
+  .inputbar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;box-shadow:var(--shadow);margin:22px 0 18px;
+  }
+  .inputbar label{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);letter-spacing:.04em}
+  #arrayInput{
+    flex:1 1 240px;min-width:180px;font-family:"JetBrains Mono",monospace;font-size:14px;
+    padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);
+  }
+  #arrayInput:focus{outline:2px solid var(--blue-ring);outline-offset:1px;border-color:var(--blue)}
+  .btn{
+    font-family:"Inter",sans-serif;font-weight:600;font-size:13px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 14px;border-radius:9px;transition:transform .08s ease,background .15s ease,border-color .15s ease;
+  }
+  .btn:hover{border-color:var(--ink)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn.primary:hover{background:#0c141d}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .presets .plabel{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted)}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;cursor:pointer;
+    border:1px dashed var(--line);background:transparent;color:var(--muted);
+    padding:6px 10px;border-radius:20px;transition:all .15s ease;
+  }
+  .chip:hover{border-style:solid;color:var(--ink);border-color:var(--ink)}
+  .err{color:#C0392B;font-size:12px;font-family:"JetBrains Mono",monospace;flex-basis:100%;display:none}
+  .err.show{display:block}
+
+  /* ---------- main grid ---------- */
+  .grid{display:grid;grid-template-columns:1.28fr .92fr;gap:16px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px 16px 18px;
+  }
+  .card h2{
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px;font-weight:500;display:flex;align-items:center;gap:8px;
+  }
+  .card h2 .k{width:6px;height:6px;border-radius:2px;display:inline-block}
+
+  /* ---------- array + tracks ---------- */
+  .phase{
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--ink);
+    background:var(--amber-soft);border:1px solid rgba(199,120,0,.3);color:#8a5400;
+    display:inline-block;padding:4px 10px;border-radius:7px;margin-bottom:14px;font-weight:500;
+  }
+  .rowlabel{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.05em;
+    display:flex;align-items:center;gap:7px;margin:0 0 7px;font-weight:500;
+  }
+  .rowlabel .k{width:9px;height:9px;border-radius:3px}
+  .rowlabel .val{margin-left:auto;font-weight:700;font-size:13px}
+  .cells{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+  .cell{
+    position:relative;min-width:44px;flex:0 0 auto;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:1.5px solid var(--line);border-radius:9px;background:#fff;
+    padding:7px 8px 5px;transition:all .18s ease;
+  }
+  .cell .v{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:15px;line-height:1}
+  .cell .idx{font-family:"JetBrains Mono",monospace;font-size:9.5px;color:var(--muted);margin-top:3px}
+  .cell.cur{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-soft)}
+  .cell.cur::after{
+    content:"i";position:absolute;top:-9px;right:-8px;
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;color:#fff;background:var(--amber);
+    width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  /* array rows (tracks) states */
+  .track .cell{background:#fff}
+  .track.blue .cell.in{background:var(--blue-soft);border-color:var(--blue-ring)}
+  .track.magenta .cell.in{background:var(--magenta-soft);border-color:var(--magenta-ring)}
+  .track .cell.out{opacity:.32}
+  .track .cell.del{position:relative}
+  .track .cell.del .v{color:var(--muted);text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:var(--magenta)}
+  .track .cell.del::before{
+    content:"delete";position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:8px;letter-spacing:.05em;color:#fff;background:var(--magenta);
+    padding:1px 5px;border-radius:6px;white-space:nowrap;
+  }
+  .track.inactive{opacity:.55}
+  .tracknote{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-top:2px}
+  .divider{height:1px;background:var(--line);margin:16px 0}
+
+  /* ---------- possibility box ---------- */
+  .possib{margin-top:4px}
+  .possib .ptitle{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:9px;letter-spacing:.04em}
+  .cands{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch}
+  @media(max-width:520px){.cands{grid-template-columns:1fr}}
+  .cand{
+    border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;
+    transition:all .18s ease;position:relative;
+  }
+  .cand .clab{font-size:11.5px;color:var(--muted);margin-bottom:6px;line-height:1.35}
+  .cand .cexpr{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink);margin-bottom:8px}
+  .cand .cval{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:20px}
+  .cand.win{border-color:var(--green);background:var(--green-soft);box-shadow:0 0 0 3px var(--green-soft)}
+  .cand.win .cval{color:var(--green)}
+  .cand.win::after{
+    content:"✓ jeeti";position:absolute;top:-10px;right:10px;font-family:"JetBrains Mono",monospace;
+    font-size:10px;font-weight:700;color:#fff;background:var(--green);padding:2px 7px;border-radius:6px;
+  }
+  .cand.lose{opacity:.6}
+  .vs{display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk";font-weight:700;color:var(--muted);font-size:13px}
+  .possib.hidden{display:none}
+  .possib-idle{font-size:13px;color:var(--muted);padding:6px 0}
+
+  /* ---------- code panel ---------- */
+  .code{
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.85;
+    background:#0F1A24;border-radius:11px;padding:14px 6px 14px 0;overflow-x:auto;color:#B7C4D0;
+  }
+  .code .ln{display:flex;padding:0 14px 0 0;white-space:pre;transition:background .18s ease}
+  .code .ln .no{width:34px;text-align:right;padding-right:14px;color:#4A5C6E;flex:0 0 auto;user-select:none}
+  .code .ln.active{background:rgba(199,120,0,.16)}
+  .code .ln.active .no{color:var(--amber)}
+  .code .kw{color:#7FB3E0}
+  .code .fn{color:#E0B84B}
+  .code .nm{color:#E6ECF2}
+  .code .op{color:#9AA8B5}
+  .code .cm{color:#5D7086;font-style:italic}
+
+  /* ---------- state readouts ---------- */
+  .states{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .stbox{
+    border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;transition:all .2s ease;
+  }
+  .stbox .name{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:4px}
+  .stbox .num{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:24px;line-height:1}
+  .stbox.b-prev{border-color:var(--line)}
+  .stbox.b-prev .num{color:var(--muted)}
+  .stbox.b-noDel .name{color:var(--blue)} .stbox.b-noDel .num{color:var(--blue)}
+  .stbox.b-oneDel .name{color:var(--magenta)} .stbox.b-oneDel .num{color:var(--magenta)}
+  .stbox.b-res{border-color:var(--green);background:var(--green-soft)} .stbox.b-res .name{color:var(--green)} .stbox.b-res .num{color:var(--green)}
+  .stbox.flash{animation:flash .6s ease}
+  @keyframes flash{0%{box-shadow:0 0 0 0 var(--amber)}40%{box-shadow:0 0 0 4px var(--amber-soft)}100%{box-shadow:0 0 0 0 transparent}}
+
+  /* ---------- narrative ---------- */
+  .narr{
+    grid-column:1/-1;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--magenta);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 18px;
+  }
+  .narr .ntag{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--magenta);margin-bottom:6px}
+  .narr .ntext{font-size:14.5px;color:var(--ink)}
+  .narr .ntext b{color:var(--ink)}
+  .narr .ntext .hl-b{color:var(--blue);font-weight:600}
+  .narr .ntext .hl-m{color:var(--magenta);font-weight:600}
+  .narr .ntext .hl-g{color:var(--green);font-weight:700}
+
+  /* ---------- transport ---------- */
+  .transport{
+    grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:12px 14px;
+  }
+  .transport .step-count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);margin-left:auto}
+  .progress{flex-basis:100%;height:5px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:2px}
+  .progress .bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--magenta));width:0;transition:width .2s ease}
+  .btn.big{padding:10px 16px;font-size:14px}
+  .btn.big.play{min-width:96px}
+  .speed{display:flex;align-items:center;gap:6px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted)}
+  .speed input{accent-color:var(--magenta)}
+
+  .legend{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:16px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);padding:2px 4px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend .k{width:11px;height:11px;border-radius:3px;display:inline-block}
+  kbd{font-family:"JetBrains Mono",monospace;font-size:10px;background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--muted)}
+
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow"><span class="dot"></span>LeetCode 1186 · Two-Track Debugger</div>
+    <h1>Do Kadane, ek saath.<br><span class="em">Maximum Subarray Sum with One Deletion.</span></h1>
+    <p class="sub">Yeh problem asal mein <code>noDel</code> aur <code>oneDel</code> — do parallel states hai. Neeche array daalo, phir <b>Next</b> dabate jao. Har line pe dono tracks live badalte dikhenge, aur <code>oneDel</code> ke liye konsi possibility jeeti (element delete karna ya nahi) — sab.</p>
+  </header>
+
+  <div class="inputbar">
+    <label for="arrayInput">arr =</label>
+    <input id="arrayInput" type="text" value="1, -2, 1, 2, -3, 4" spellcheck="false" aria-label="Array input, comma separated integers">
+    <button class="btn primary" id="loadBtn">Load</button>
+    <div class="presets">
+      <span class="plabel">examples:</span>
+      <button class="chip" data-arr="1,-2,0,3">[1,-2,0,3]</button>
+      <button class="chip" data-arr="1,-2,-2,3">[1,-2,-2,3]</button>
+      <button class="chip" data-arr="-1,-1,-1,-1">[-1,-1,-1,-1]</button>
+      <button class="chip" data-arr="5,-1,-1,5">[5,-1,-1,5]</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- LEFT: visualization -->
+    <div class="card" id="vizCard">
+      <h2><span class="k" style="background:var(--amber)"></span>Array &amp; state tracks</h2>
+      <div class="phase" id="phase">Ready</div>
+
+      <!-- master array -->
+      <div class="cells" id="masterCells" aria-hidden="false"></div>
+
+      <div class="divider"></div>
+
+      <!-- noDel track -->
+      <div class="rowlabel" style="color:var(--blue)">
+        <span class="k" style="background:var(--blue)"></span>noDel track — bina deletion
+        <span class="val" id="noDelVal">–</span>
+      </div>
+      <div class="cells track blue" id="noDelCells"></div>
+      <div class="tracknote" id="noDelNote"></div>
+
+      <div style="height:14px"></div>
+
+      <!-- oneDel track -->
+      <div class="rowlabel" style="color:var(--magenta)">
+        <span class="k" style="background:var(--magenta)"></span>oneDel track — ek deletion
+        <span class="val" id="oneDelVal">–</span>
+      </div>
+      <div class="cells track magenta" id="oneDelCells"></div>
+      <div class="tracknote" id="oneDelNote"></div>
+
+      <div class="divider"></div>
+
+      <!-- possibility comparison -->
+      <div class="possib" id="possib">
+        <div class="ptitle" id="possibTitle">is line pe do candidates:</div>
+        <div class="cands" id="candsWrap">
+          <div class="cand" id="candA">
+            <div class="clab" id="candALab"></div>
+            <div class="cexpr" id="candAExpr"></div>
+            <div class="cval" id="candAVal"></div>
+          </div>
+          <div class="vs">vs</div>
+          <div class="cand" id="candB">
+            <div class="clab" id="candBLab"></div>
+            <div class="cexpr" id="candBExpr"></div>
+            <div class="cval" id="candBVal"></div>
+          </div>
+        </div>
+        <div class="possib-idle" id="possibIdle" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: code + state -->
+    <div class="card">
+      <h2><span class="k" style="background:#E0B84B"></span>Code · active line highlighted</h2>
+      <div class="code" id="code"></div>
+
+      <div class="states">
+        <div class="stbox b-prev" id="st-prev"><div class="name">prevNoDel</div><div class="num" id="v-prev">–</div></div>
+        <div class="stbox b-noDel" id="st-noDel"><div class="name">noDel</div><div class="num" id="v-noDel">–</div></div>
+        <div class="stbox b-oneDel" id="st-oneDel"><div class="name">oneDel</div><div class="num" id="v-oneDel">–</div></div>
+        <div class="stbox b-res" id="st-res"><div class="name">res (answer)</div><div class="num" id="v-res">–</div></div>
+      </div>
+    </div>
+
+    <!-- narrative -->
+    <div class="narr">
+      <div class="ntag" id="narrTag">Step</div>
+      <div class="ntext" id="narrText">Load karo aur Next dabao.</div>
+    </div>
+
+    <!-- transport -->
+    <div class="transport">
+      <button class="btn big" id="prevBtn">◀ Prev</button>
+      <button class="btn big play primary" id="playBtn">▶ Play</button>
+      <button class="btn big" id="nextBtn">Next ▶</button>
+      <button class="btn big" id="resetBtn">↺ Reset</button>
+      <div class="speed">speed
+        <input type="range" id="speed" min="250" max="1600" value="850" step="50">
+      </div>
+      <div class="step-count" id="stepCount">step 0 / 0</div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+    </div>
+
+    <div class="legend">
+      <span><span class="k" style="background:var(--blue)"></span>noDel (no deletion)</span>
+      <span><span class="k" style="background:var(--magenta)"></span>oneDel (one deletion)</span>
+      <span><span class="k" style="background:var(--green)"></span>res (running answer)</span>
+      <span><span class="k" style="background:var(--amber)"></span>current i</span>
+      <span>keys: <kbd>←</kbd> <kbd>→</kbd> step · <kbd>space</kbd> play</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   FRAME GENERATOR
+   Runs the exact algorithm and emits one frame per code line,
+   tracking which subarray each state represents + which
+   candidate ("possibility") wins each max().
+   ============================================================ */
+
+function generateFrames(a){
+  const frames = [];
+  const n = a.length;
+
+  let noDel = a[0], oneDel = 0, res = a[0];
+  let noDelStart = 0;               // subarray start for noDel
+  let oneDelStart = null;           // subarray start for oneDel (null = phantom/seed)
+  let oneDelDeleted = null;         // which index oneDel deleted (null = deletion unused)
+
+  const push = (f) => frames.push(f);
+
+  // ---- init frame (before loop) ----
+  push({
+    phase: "Init · loop se pehle",
+    lines: ["L1","L2","L3"],
+    prevNoDel: null, noDel, oneDel, res,
+    flash: "res",
+    noDelSpan: [0,0],
+    oneDelSpan: null, oneDelDeleted: null,
+    possib: null,
+    idle: `oneDel abhi placeholder <b>0</b> hai — koi real subarray nahi. Pehle element pe deletion invalid hoti hai.`,
+    narrTag: "Setup",
+    narr: `Shuruaat mein <span class="hl-b">noDel = arr[0] = ${a[0]}</span> (bina deletion ke best). <span class="hl-m">oneDel = 0</span> ek harmless placeholder. <span class="hl-g">res = ${a[0]}</span>. Ab <b>i = 1</b> se loop chalega — Next dabao.`
+  });
+
+  for(let i=1;i<n;i++){
+    const prevNoDelStartSnapshot = noDelStart;   // noDel's start as of i-1
+
+    // ---------- line: prevNoDel = noDel ----------
+    const prevNoDel = noDel;
+    push({
+      phase: `i = ${i} · prevNoDel = noDel`,
+      lines: ["L6"],
+      prevNoDel, noDel, oneDel, res,
+      flash: "prev", i,
+      noDelSpan: [noDelStart, i-1],
+      oneDelSpan: (oneDelStart===null? null : [oneDelStart, i-1]),
+      oneDelDeleted,
+      possib: null,
+      idle: `Pehle purani <span class="hl-b">noDel = ${prevNoDel}</span> ko <b>prevNoDel</b> mein save kiya — kyunki neeche oneDel wali line ko yeh purani value chahiye hogi.`,
+      narrTag: `i = ${i}`,
+      narr: `<b>Line 1 of iteration.</b> <span class="hl-b">noDel</span> ko update karne se <b>pehle</b> uski current value <b>${prevNoDel}</b> ko <b>prevNoDel</b> mein rakh liya. Yeh "arr[i] delete karo" wali possibility ke liye chahiye.`
+    });
+
+    // ---------- line: noDel = max(arr[i], noDel + arr[i]) ----------
+    const restart = a[i];
+    const extend  = noDel + a[i];
+    const extendWins = extend >= restart;   // extend when previous noDel > 0
+    noDel = Math.max(restart, extend);
+    if(extendWins){ /* start unchanged */ } else { noDelStart = i; }
+
+    push({
+      phase: `i = ${i} · noDel update`,
+      lines: ["L7"],
+      prevNoDel, noDel, oneDel, res,
+      flash: "noDel", i,
+      noDelSpan: [noDelStart, i],
+      oneDelSpan: (oneDelStart===null? null : [oneDelStart, i-1]),
+      oneDelDeleted,
+      possib: {
+        title: "noDel — plain Kadane: chalte raho ya fresh start?",
+        a: { lab:"Fresh start yahin se", expr:`arr[i] = ${restart}`, val:restart, key:"a" },
+        b: { lab:"Purane subarray ko extend karo", expr:`noDel + arr[i] = ${extend}`, val:extend, key:"b" },
+        winner: extendWins ? "b" : "a"
+      },
+      narrTag: `i = ${i}`,
+      narr: extendWins
+        ? `<span class="hl-b">noDel</span> = purana subarray extend hua → <b>${noDel}</b>. (Pichli noDel positive thi, toh saath rakhna faydemand.)`
+        : `<span class="hl-b">noDel</span> = <b>${noDel}</b>, fresh start <b>index ${i}</b> se. (Pichli noDel ne sirf bojh badhaya hota, isliye chhod diya.)`
+    });
+
+    // ---------- line: oneDel = max(prevNoDel, oneDel + arr[i]) ----------
+    const delNow  = prevNoDel;        // A: delete arr[i]
+    const keepAdd = oneDel + a[i];    // B: deletion pehle hui, ab arr[i] add
+    const wasUnused = (oneDelDeleted===null);
+    const aWins = delNow >= keepAdd;
+    oneDel = Math.max(delNow, keepAdd);
+
+    let oneNarr, oneIdle=null;
+    if(aWins){
+      oneDelStart = prevNoDelStartSnapshot;
+      oneDelDeleted = i;
+      const kept = (oneDelStart<=i-1) ? `[${oneDelStart}..${i-1}]` : `[${i-1}]`;
+      oneNarr = `<b>Possibility A jeeti</b> — <span class="hl-m">arr[i] = ${a[i]}</span> ko <b>delete</b> kar diya. oneDel ab prevNoDel = <b>${oneDel}</b>. Matlab ${kept} wala best no-deletion subarray liya, aur index ${i} gira diya.`;
+    } else {
+      if(oneDelStart===null) oneDelStart = i;   // extend from seed
+      oneDel = keepAdd;
+      if(wasUnused){
+        oneNarr = `<b>Possibility B jeeti</b> — arr[i] = ${a[i]} normal add hua → oneDel = <b>${oneDel}</b>. <span class="hl-m">Deletion abhi tak use nahi hui</span>, bachi hui hai (isliye track pe koi cell crossed nahi).`;
+      } else {
+        oneNarr = `<b>Possibility B jeeti</b> — deletion pehle (index ${oneDelDeleted}) ho chuki thi, ab arr[i] = ${a[i]} add → oneDel = <b>${oneDel}</b>.`;
+      }
+    }
+
+    push({
+      phase: `i = ${i} · oneDel update  ★`,
+      lines: ["L8"],
+      prevNoDel, noDel, oneDel, res,
+      flash: "oneDel", i,
+      noDelSpan: [noDelStart, i],
+      oneDelSpan: [oneDelStart, i],
+      oneDelDeleted,
+      possib: {
+        title: "oneDel — yahi is problem ka dil hai: dono possibilities compete karti hain",
+        a: { lab:"A · arr[i] ko DELETE karo", expr:`prevNoDel = ${delNow}`, val:delNow, key:"a" },
+        b: { lab:"B · deletion pehle hui, arr[i] add", expr:`oneDel + arr[i] = ${keepAdd}`, val:keepAdd, key:"b" },
+        winner: aWins ? "a" : "b"
+      },
+      narrTag: `i = ${i} · KEY STEP`,
+      narr: oneNarr
+    });
+
+    // ---------- line: res = max(res, max(noDel, oneDel)) ----------
+    const combined = Math.max(noDel, oneDel);
+    const bestState = (noDel>=oneDel) ? "noDel" : "oneDel";
+    const updated = combined > res;
+    const oldRes = res;
+    res = Math.max(res, combined);
+
+    push({
+      phase: `i = ${i} · res update`,
+      lines: ["L9"],
+      prevNoDel, noDel, oneDel, res,
+      flash: updated ? "res" : null, i,
+      noDelSpan: [noDelStart, i],
+      oneDelSpan: [oneDelStart, i],
+      oneDelDeleted,
+      possib: {
+        title: "res — ab tak ka overall best update karo",
+        a: { lab:"Purana res", expr:`res = ${oldRes}`, val:oldRes, key:"a" },
+        b: { lab:`Is index ka best (${bestState})`, expr:`max(noDel, oneDel) = ${combined}`, val:combined, key:"b" },
+        winner: updated ? "b" : "a"
+      },
+      narrTag: `i = ${i}`,
+      narr: updated
+        ? `<span class="hl-g">res upgrade hua → ${res}</span>, aaya <span class="${bestState==='noDel'?'hl-b':'hl-m'}">${bestState}</span> se. Iteration khatam, agla i.`
+        : `res <b>${res}</b> hi raha (is index ka best ${combined} usse bada nahi tha). Iteration khatam, agla i.`
+    });
+  }
+
+  // ---------- final: return res ----------
+  push({
+    phase: "return res · done ✓",
+    lines: ["L11"],
+    prevNoDel: null, noDel, oneDel, res,
+    flash: "res",
+    noDelSpan: null, oneDelSpan: null, oneDelDeleted: null,
+    possib: null,
+    idle: `Poore array mein kahin bhi mila sabse bada value hi answer hai.`,
+    narrTag: "Answer",
+    narr: `Loop khatam. <span class="hl-g">return res = ${res}</span> — yahi maximum sum hai (at most ek deletion ke saath). ${n===1?`Single element tha, toh seedha arr[0].`:``}`,
+    isFinal: true
+  });
+
+  return frames;
+}
+
+/* ============================================================
+   CODE PANEL (static, line ids match frame.lines)
+   ============================================================ */
+const CODE_LINES = [
+  {id:null, html:`<span class="kw">public int</span> <span class="fn">maximumSum</span><span class="op">(</span><span class="kw">int</span><span class="op">[] </span><span class="nm">arr</span><span class="op">) {</span>`},
+  {id:null, html:`    <span class="kw">int</span> <span class="nm">n</span> <span class="op">=</span> <span class="nm">arr</span><span class="op">.length;</span>`},
+  {id:"L1", html:`    <span class="kw">int</span> <span class="nm">noDel</span> <span class="op">=</span> <span class="nm">arr</span><span class="op">[</span><span class="nm">0</span><span class="op">];</span>`},
+  {id:"L2", html:`    <span class="kw">int</span> <span class="nm">oneDel</span> <span class="op">=</span> <span class="nm">0</span><span class="op">;</span>`},
+  {id:"L3", html:`    <span class="kw">int</span> <span class="nm">res</span> <span class="op">=</span> <span class="nm">arr</span><span class="op">[</span><span class="nm">0</span><span class="op">];</span>`},
+  {id:null, html:``},
+  {id:"L5", html:`    <span class="kw">for</span> <span class="op">(</span><span class="kw">int</span> <span class="nm">i</span> <span class="op">=</span> <span class="nm">1</span><span class="op">;</span> <span class="nm">i</span> <span class="op">&lt;</span> <span class="nm">n</span><span class="op">;</span> <span class="nm">i</span><span class="op">++) {</span>`},
+  {id:"L6", html:`        <span class="kw">int</span> <span class="nm">prevNoDel</span> <span class="op">=</span> <span class="nm">noDel</span><span class="op">;</span>`},
+  {id:"L7", html:`        <span class="nm">noDel</span>  <span class="op">=</span> <span class="fn">Math</span><span class="op">.</span><span class="fn">max</span><span class="op">(</span><span class="nm">arr</span><span class="op">[</span><span class="nm">i</span><span class="op">],</span> <span class="nm">noDel</span> <span class="op">+</span> <span class="nm">arr</span><span class="op">[</span><span class="nm">i</span><span class="op">]);</span>`},
+  {id:"L8", html:`        <span class="nm">oneDel</span> <span class="op">=</span> <span class="fn">Math</span><span class="op">.</span><span class="fn">max</span><span class="op">(</span><span class="nm">prevNoDel</span><span class="op">,</span> <span class="nm">oneDel</span> <span class="op">+</span> <span class="nm">arr</span><span class="op">[</span><span class="nm">i</span><span class="op">]);</span>`},
+  {id:"L9", html:`        <span class="nm">res</span> <span class="op">=</span> <span class="fn">Math</span><span class="op">.</span><span class="fn">max</span><span class="op">(</span><span class="nm">res</span><span class="op">,</span> <span class="fn">Math</span><span class="op">.</span><span class="fn">max</span><span class="op">(</span><span class="nm">noDel</span><span class="op">,</span> <span class="nm">oneDel</span><span class="op">));</span>`},
+  {id:null, html:`    <span class="op">}</span>`},
+  {id:"L11", html:`    <span class="kw">return</span> <span class="nm">res</span><span class="op">;</span>`},
+  {id:null, html:`<span class="op">}</span>`}
+];
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+let A = [];
+let FRAMES = [];
+let cur = 0;
+let playing = false;
+let timer = null;
+
+const $ = id => document.getElementById(id);
+
+function buildCode(){
+  const box = $("code");
+  box.innerHTML = "";
+  CODE_LINES.forEach((l,idx)=>{
+    const div = document.createElement("div");
+    div.className = "ln";
+    if(l.id) div.dataset.id = l.id;
+    div.innerHTML = `<span class="no">${idx+1}</span>${l.html}`;
+    box.appendChild(div);
+  });
+}
+
+function buildMaster(){
+  const box = $("masterCells");
+  box.innerHTML = "";
+  A.forEach((v,idx)=>{
+    const c = document.createElement("div");
+    c.className = "cell";
+    c.dataset.idx = idx;
+    c.innerHTML = `<span class="v">${v}</span><span class="idx">${idx}</span>`;
+    box.appendChild(c);
+  });
+  // build track rows (clones structurally)
+  ["noDelCells","oneDelCells"].forEach(rowId=>{
+    const row = $(rowId); row.innerHTML="";
+    A.forEach((v,idx)=>{
+      const c = document.createElement("div");
+      c.className="cell"; c.dataset.idx=idx;
+      c.innerHTML = `<span class="v">${v}</span><span class="idx">${idx}</span>`;
+      row.appendChild(c);
+    });
+  });
+}
+
+function fmt(x){ return (x===null||x===undefined) ? "–" : String(x); }
+
+function render(){
+  const f = FRAMES[cur];
+
+  // phase
+  $("phase").textContent = f.phase;
+
+  // code highlight
+  document.querySelectorAll("#code .ln").forEach(ln=>{
+    ln.classList.toggle("active", f.lines.includes(ln.dataset.id));
+  });
+
+  // master array — current i
+  document.querySelectorAll("#masterCells .cell").forEach(c=>{
+    c.classList.toggle("cur", f.i!==undefined && f.i!==null && +c.dataset.idx===f.i);
+  });
+
+  // noDel track
+  paintTrack("noDelCells", f.noDelSpan, null);
+  // oneDel track
+  paintTrack("oneDelCells", f.oneDelSpan, f.oneDelDeleted);
+
+  // track values + notes
+  $("noDelVal").textContent = fmt(f.noDel);
+  $("oneDelVal").textContent = fmt(f.oneDel);
+  $("noDelNote").textContent = f.noDelSpan
+    ? `subarray [${f.noDelSpan[0]}..${f.noDelSpan[1]}] · sum = ${f.noDel}`
+    : `abhi active nahi`;
+  if(!f.oneDelSpan){
+    $("oneDelNote").textContent = `abhi koi real subarray nahi (placeholder 0)`;
+    $("oneDelCells").classList.add("inactive");
+  } else {
+    $("oneDelCells").classList.remove("inactive");
+    const del = (f.oneDelDeleted!==null && f.oneDelDeleted!==undefined) ? ` · index ${f.oneDelDeleted} deleted` : ` · deletion abhi unused`;
+    $("oneDelNote").textContent = `subarray [${f.oneDelSpan[0]}..${f.oneDelSpan[1]}]${del} · sum = ${f.oneDel}`;
+  }
+
+  // possibility box
+  const possibEl = $("possib");
+  if(f.possib){
+    $("possibIdle").style.display="none";
+    $("candsWrap").style.display="";
+    $("possibTitle").style.display="";
+    $("possibTitle").textContent = f.possib.title;
+    fillCand("A", f.possib.a, f.possib.winner==="a");
+    fillCand("B", f.possib.b, f.possib.winner==="b");
+  } else {
+    $("candsWrap").style.display="none";
+    $("possibTitle").style.display="none";
+    const idle = $("possibIdle");
+    idle.style.display="block";
+    idle.innerHTML = f.idle || "";
+  }
+
+  // state readouts
+  setNum("v-prev", f.prevNoDel, "st-prev", f.flash==="prev");
+  setNum("v-noDel", f.noDel, "st-noDel", f.flash==="noDel");
+  setNum("v-oneDel", f.oneDel, "st-oneDel", f.flash==="oneDel");
+  setNum("v-res", f.res, "st-res", f.flash==="res");
+
+  // narrative
+  $("narrTag").textContent = f.narrTag || "Step";
+  $("narrText").innerHTML = f.narr || "";
+
+  // transport
+  $("stepCount").textContent = `step ${cur} / ${FRAMES.length-1}`;
+  $("bar").style.width = `${(cur/(FRAMES.length-1))*100}%`;
+  $("prevBtn").disabled = cur===0;
+  $("nextBtn").disabled = cur===FRAMES.length-1;
+}
+
+function paintTrack(rowId, span, deleted){
+  document.querySelectorAll(`#${rowId} .cell`).forEach(c=>{
+    const idx = +c.dataset.idx;
+    c.classList.remove("in","out","del");
+    if(!span){ c.classList.add("out"); return; }
+    const [s,e] = span;
+    if(idx>=s && idx<=e){
+      if(deleted!==null && deleted!==undefined && idx===deleted){ c.classList.add("del"); }
+      else { c.classList.add("in"); }
+    } else {
+      c.classList.add("out");
+    }
+  });
+}
+
+function fillCand(which, data, win){
+  $("cand"+which+"Lab").textContent = data.lab;
+  $("cand"+which+"Expr").textContent = data.expr;
+  $("cand"+which+"Val").textContent = data.val;
+  const el = $("cand"+which);
+  el.classList.toggle("win", win);
+  el.classList.toggle("lose", !win);
+}
+
+function setNum(numId, val, boxId, flash){
+  $(numId).textContent = fmt(val);
+  if(flash){
+    const b=$(boxId);
+    b.classList.remove("flash"); void b.offsetWidth; b.classList.add("flash");
+  }
+}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+function goto(n){
+  cur = Math.max(0, Math.min(FRAMES.length-1, n));
+  render();
+  if(cur===FRAMES.length-1) stopPlay();
+}
+function next(){ goto(cur+1); }
+function prev(){ goto(cur-1); }
+function reset(){ stopPlay(); goto(0); }
+
+function startPlay(){
+  if(cur===FRAMES.length-1) goto(0);
+  playing=true;
+  $("playBtn").textContent="❚❚ Pause";
+  const speed = 1850 - +$("speed").value;   // invert: right = faster
+  timer=setInterval(()=>{
+    if(cur>=FRAMES.length-1){ stopPlay(); return; }
+    next();
+  }, speed<300?300:speed);
+}
+function stopPlay(){
+  playing=false;
+  clearInterval(timer); timer=null;
+  $("playBtn").textContent="▶ Play";
+}
+function togglePlay(){ playing ? stopPlay() : startPlay(); }
+
+/* ============================================================
+   LOAD / VALIDATE
+   ============================================================ */
+function parseInput(str){
+  const parts = str.split(/[,\s]+/).map(s=>s.trim()).filter(s=>s.length);
+  if(parts.length===0) throw "Array khaali hai. Kuch numbers daalo, e.g. 1, -2, 1, 2";
+  const nums = parts.map(p=>{
+    if(!/^-?\d+$/.test(p)) throw `"${p}" valid integer nahi hai.`;
+    const v = parseInt(p,10);
+    if(v<-10000||v>10000) throw `Values -10^4 se 10^4 ke beech rakho (${p} out of range).`;
+    return v;
+  });
+  if(nums.length>24) throw `Clarity ke liye max 24 elements dikha raha hoon (tumne ${nums.length} diye). Chhota array try karo.`;
+  return nums;
+}
+
+function load(str){
+  const errEl=$("err");
+  try{
+    A = parseInput(str);
+    errEl.classList.remove("show"); errEl.textContent="";
+    FRAMES = generateFrames(A);
+    buildMaster();
+    stopPlay();
+    goto(0);
+  }catch(e){
+    errEl.textContent = "⚠ " + e;
+    errEl.classList.add("show");
+  }
+}
+
+/* ============================================================
+   WIRE UP
+   ============================================================ */
+buildCode();
+load($("arrayInput").value);
+
+$("loadBtn").addEventListener("click", ()=>load($("arrayInput").value));
+$("arrayInput").addEventListener("keydown", e=>{ if(e.key==="Enter") load($("arrayInput").value); });
+document.querySelectorAll(".chip").forEach(ch=>{
+  ch.addEventListener("click", ()=>{
+    $("arrayInput").value = ch.dataset.arr.split(",").join(", ");
+    load($("arrayInput").value);
+  });
+});
+$("nextBtn").addEventListener("click", ()=>{ stopPlay(); next(); });
+$("prevBtn").addEventListener("click", ()=>{ stopPlay(); prev(); });
+$("resetBtn").addEventListener("click", reset);
+$("playBtn").addEventListener("click", togglePlay);
+
+document.addEventListener("keydown", e=>{
+  if(e.target.tagName==="INPUT") return;
+  if(e.key==="ArrowRight"){ e.preventDefault(); stopPlay(); next(); }
+  else if(e.key==="ArrowLeft"){ e.preventDefault(); stopPlay(); prev(); }
+  else if(e.key===" "){ e.preventDefault(); togglePlay(); }
+});
+</script>
+</body>
+</html>
