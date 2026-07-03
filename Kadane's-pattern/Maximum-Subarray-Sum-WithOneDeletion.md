@@ -1,3 +1,7 @@
+> 🎮 **[Open the interactive visualizer →]
+> 
+> (https://yashika807.github.io/DSA-PatternWise/Kadane's-pattern/Maximum-Subarray-Sum-WithOneDeletion.html)**
+
 # Maximum Subarray Sum with One Deletion
 
 > **LeetCode 1186** · Difficulty: **Medium** · Topics: `Array`, `Dynamic Programming`
