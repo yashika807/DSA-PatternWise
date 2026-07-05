@@ -167,15 +167,6 @@ class Solution:
 
 ---
 
-## 🎮 Interactive Visualizer
-
-Step-by-step dry run dekhne ke liye — do parallel Kadane's tracks + circular ring reveal:
-
-👉 **[Dry Run Debugger kholo](https://htmlpreview.github.io/?https://github.com/yashika807/DSA-PatternWise/blob/main/Kadane%27s-pattern/lc918-circular-subarray.html)**
-
-> *Note:* link `htmlpreview.github.io` ke through render hoga. Folder `Kadane's-pattern` mein apostrophe `%27` se encode kiya hai. Branch `main` na ho to link mein `main` → `master` kar dena.
-
----
 
 ## 🔁 Quick Revision (30 second recap)
 
