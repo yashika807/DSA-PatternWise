@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 918 · Maximum Sum Circular Subarray — Dry Run Debugger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1120;
+    --bg-2:#141728;
+    --surface:#1a1d2e;
+    --surface-2:#212540;
+    --line:#2c3150;
+    --text:#e8eaf2;
+    --muted:#8a8fa8;
+    --faint:#5b6180;
+
+    --max:#3dd68c;      /* max kadane -> green */
+    --max-dim:rgba(61,214,140,.16);
+    --min:#ff6b81;      /* min kadane -> coral */
+    --min-dim:rgba(255,107,129,.16);
+    --total:#f5c451;    /* total sum -> amber */
+    --total-dim:rgba(245,196,81,.14);
+    --cur:#4cc9f0;      /* current element -> cyan */
+    --cur-dim:rgba(76,201,240,.18);
+
+    --radius:14px;
+    --mono:'JetBrains Mono',monospace;
+    --disp:'Space Grotesk',sans-serif;
+    --body:'Inter',sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1100px 600px at 82% -10%, rgba(76,201,240,.09), transparent 60%),
+      radial-gradient(900px 520px at 0% 110%, rgba(61,214,140,.07), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--body);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    padding:clamp(14px,3vw,36px);
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  header{margin-bottom:26px}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--cur);
+    display:flex;align-items:center;gap:10px;margin-bottom:14px
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--cur);opacity:.7}
+  h1{
+    font-family:var(--disp);font-weight:700;
+    font-size:clamp(28px,5vw,46px);line-height:1.04;letter-spacing:-.02em;
+    margin-bottom:12px
+  }
+  h1 .num{color:var(--faint);font-weight:500}
+  .lede{color:var(--muted);max-width:64ch;font-size:15.5px}
+  .lede b{color:var(--text);font-weight:600}
+  .pill{
+    display:inline-block;font-family:var(--mono);font-size:11px;
+    padding:3px 9px;border:1px solid var(--line);border-radius:999px;
+    color:var(--muted);background:var(--surface);margin-left:8px;vertical-align:middle
+  }
+
+  /* ---------- panels ---------- */
+  .panel{
+    background:linear-gradient(180deg,var(--surface),var(--bg-2));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:clamp(16px,2.4vw,24px);margin-bottom:18px;
+    position:relative;overflow:hidden
+  }
+  .panel-title{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--faint);margin-bottom:16px;
+    display:flex;align-items:center;gap:8px
+  }
+  .panel-title .dot{width:6px;height:6px;border-radius:50%;background:var(--cur)}
+
+  /* ---------- input ---------- */
+  .examples{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .ex-btn{
+    font-family:var(--mono);font-size:13px;color:var(--text);
+    background:var(--surface-2);border:1px solid var(--line);
+    padding:9px 14px;border-radius:10px;cursor:pointer;
+    transition:transform .15s ease,border-color .15s ease,background .15s ease
+  }
+  .ex-btn:hover{border-color:var(--cur);transform:translateY(-1px)}
+  .ex-btn.on{border-color:var(--cur);background:var(--cur-dim);color:var(--text)}
+  .ex-tag{font-size:10.5px;color:var(--faint);display:block;margin-top:2px;letter-spacing:.04em}
+  .custom{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .custom input{
+    flex:1;min-width:220px;font-family:var(--mono);font-size:14px;
+    background:var(--bg);border:1px solid var(--line);color:var(--text);
+    padding:11px 14px;border-radius:10px;outline:none;transition:border-color .15s
+  }
+  .custom input:focus{border-color:var(--cur)}
+  .custom button{
+    font-family:var(--disp);font-weight:600;font-size:14px;
+    background:var(--cur);color:#06263a;border:none;padding:11px 20px;
+    border-radius:10px;cursor:pointer;transition:filter .15s,transform .15s
+  }
+  .custom button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .err{color:var(--min);font-family:var(--mono);font-size:12.5px;margin-top:10px;min-height:16px}
+
+  /* ---------- tracks / arrays ---------- */
+  .track{margin-bottom:20px}
+  .track:last-child{margin-bottom:0}
+  .track-head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    margin-bottom:10px;gap:12px;flex-wrap:wrap
+  }
+  .track-name{font-family:var(--disp);font-weight:600;font-size:15px;display:flex;align-items:center;gap:9px}
+  .swatch{width:11px;height:11px;border-radius:3px;flex:none}
+  .track-name.max .swatch{background:var(--max)}
+  .track-name.min .swatch{background:var(--min)}
+  .track-vals{font-family:var(--mono);font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+  .track-vals b{color:var(--text);font-weight:700}
+  .kv .k{color:var(--faint)}
+
+  .cells{display:flex;gap:8px;flex-wrap:wrap}
+  .cell{
+    position:relative;min-width:52px;height:56px;flex:1 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-weight:500;font-size:17px;
+    background:var(--bg);border:1.5px solid var(--line);border-radius:11px;
+    transition:background .25s ease,border-color .25s ease,transform .25s ease,box-shadow .25s ease;
+    color:var(--text)
+  }
+  .cell .idx{
+    position:absolute;top:-9px;left:7px;font-size:9.5px;color:var(--faint);
+    background:var(--bg-2);padding:0 4px;border-radius:4px
+  }
+  /* running window tints */
+  .track.maxtrack .cell.inwin{background:var(--max-dim);border-color:rgba(61,214,140,.5)}
+  .track.mintrack .cell.inwin{background:var(--min-dim);border-color:rgba(255,107,129,.5)}
+  /* best-so-far bracket */
+  .track.maxtrack .cell.best{box-shadow:inset 0 -3px 0 var(--max)}
+  .track.mintrack .cell.best{box-shadow:inset 0 -3px 0 var(--min)}
+  /* current element */
+  .cell.cur{
+    border-color:var(--cur);background:var(--cur-dim);
+    transform:translateY(-4px);
+    box-shadow:0 8px 22px -8px rgba(76,201,240,.7)
+  }
+  .cell.cur.best{box-shadow:0 8px 22px -8px rgba(76,201,240,.7)}
+  .cell.dimmed{opacity:.34}
+
+  /* total bar */
+  .totalbar{
+    display:flex;align-items:center;gap:14px;
+    background:var(--bg);border:1px solid var(--line);
+    border-radius:12px;padding:14px 18px
+  }
+  .totalbar .lbl{font-family:var(--disp);font-weight:600;font-size:14px;display:flex;align-items:center;gap:9px}
+  .totalbar .swatch{background:var(--total)}
+  .totalbar .val{font-family:var(--mono);font-weight:700;font-size:22px;color:var(--total);margin-left:auto}
+  .totalbar .add{font-family:var(--mono);font-size:13px;color:var(--muted)}
+
+  /* ---------- narration ---------- */
+  .narr{
+    background:linear-gradient(180deg,rgba(76,201,240,.06),transparent);
+    border:1px solid var(--line);border-left:3px solid var(--cur);
+    border-radius:12px;padding:16px 18px
+  }
+  .narr .who{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--cur);margin-bottom:8px
+  }
+  .narr .msg{font-size:15px;color:var(--text)}
+  .narr .msg .m{font-family:var(--mono);color:var(--total);font-weight:500}
+  .narr .msg .g{color:var(--max);font-weight:600}
+  .narr .msg .r{color:var(--min);font-weight:600}
+  .narr .msg .c{color:var(--cur);font-weight:600}
+  .narr .formula{
+    font-family:var(--mono);font-size:13.5px;margin-top:10px;color:var(--muted);
+    background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;
+    overflow-x:auto;white-space:nowrap
+  }
+  .narr .formula .pick{color:var(--text);background:var(--surface-2);padding:1px 6px;border-radius:5px}
+  .narr .formula .win{color:var(--max)}
+
+  /* ---------- controls ---------- */
+  .controls{
+    position:sticky;bottom:14px;z-index:5;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:rgba(20,23,40,.86);backdrop-filter:blur(10px);
+    border:1px solid var(--line);border-radius:14px;padding:12px 14px
+  }
+  .btn{
+    font-family:var(--disp);font-weight:600;font-size:13.5px;
+    background:var(--surface-2);color:var(--text);border:1px solid var(--line);
+    padding:10px 16px;border-radius:10px;cursor:pointer;
+    display:flex;align-items:center;gap:7px;
+    transition:border-color .15s,background .15s,transform .12s
+  }
+  .btn:hover:not(:disabled){border-color:var(--cur);transform:translateY(-1px)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.primary{background:var(--cur);color:#06263a;border-color:var(--cur)}
+  .btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+  .spacer{flex:1}
+  .stepnum{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .stepnum b{color:var(--text)}
+  .speed{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .speed input{accent-color:var(--cur)}
+  .progress{height:3px;background:var(--line);border-radius:2px;margin-top:12px;overflow:hidden}
+  .progress .fill{height:100%;width:0;background:linear-gradient(90deg,var(--cur),var(--max));transition:width .3s ease}
+
+  /* ---------- code ---------- */
+  .code{font-family:var(--mono);font-size:13px;line-height:1.75;overflow-x:auto}
+  .code .ln{display:flex;padding:1px 8px;border-radius:6px;transition:background .2s}
+  .code .ln .no{color:var(--faint);width:26px;flex:none;text-align:right;margin-right:16px;user-select:none}
+  .code .ln.hot{background:var(--cur-dim)}
+  .code .ln.hot .no{color:var(--cur)}
+  .tok-kw{color:#c792ea}
+  .tok-ty{color:#82aaff}
+  .tok-fn{color:#ffcb6b}
+  .tok-nm{color:#f78c6c}
+  .tok-cm{color:var(--faint);font-style:italic}
+
+  /* ---------- decision / ring ---------- */
+  #decisionPanel{display:none}
+  #decisionPanel.show{display:block;animation:rise .5s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .decision-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:center}
+  @media(max-width:760px){.decision-grid{grid-template-columns:1fr}}
+  .verdict h2{font-family:var(--disp);font-weight:700;font-size:22px;margin-bottom:6px}
+  .verdict .sub{color:var(--muted);font-size:14px;margin-bottom:16px}
+  .calc-row{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:var(--mono);font-size:14px;padding:11px 14px;
+    background:var(--bg);border:1px solid var(--line);border-radius:10px;margin-bottom:9px
+  }
+  .calc-row .k{color:var(--muted)}
+  .calc-row .v{font-weight:700}
+  .calc-row.max .v{color:var(--max)}
+  .calc-row.min .v{color:var(--min)}
+  .calc-row.total .v{color:var(--total)}
+  .calc-row.wrap{border-color:rgba(61,214,140,.4);background:var(--max-dim)}
+  .calc-row.ansrow{border-color:var(--cur);background:var(--cur-dim)}
+  .calc-row.ansrow .k{color:var(--text);font-weight:600}
+  .calc-row.ansrow .v{color:var(--cur);font-size:20px}
+  .winner-tag{
+    display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+    padding:3px 9px;border-radius:999px;margin-top:14px
+  }
+  .winner-tag.nowrap{background:var(--max-dim);color:var(--max);border:1px solid rgba(61,214,140,.4)}
+  .winner-tag.wrapt{background:var(--max-dim);color:var(--max);border:1px solid rgba(61,214,140,.4)}
+  .winner-tag.allneg{background:var(--min-dim);color:var(--min);border:1px solid rgba(255,107,129,.4)}
+
+  .ring-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+  svg.ring{width:100%;max-width:340px;height:auto}
+  .ring-legend{display:flex;gap:16px;font-family:var(--mono);font-size:11.5px;color:var(--muted);flex-wrap:wrap;justify-content:center}
+  .ring-legend span{display:flex;align-items:center;gap:6px}
+  .ring-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  footer{color:var(--faint);font-family:var(--mono);font-size:11.5px;text-align:center;margin-top:28px;line-height:1.7}
+  footer a{color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--faint)}
+
+  .hint{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:10px}
+  kbd{font-family:var(--mono);background:var(--surface-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:11px;color:var(--muted)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none!important;animation:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Padho with Pratyush · Dry Run Mode</div>
+    <h1><span class="num">918.</span> Maximum Sum Circular Subarray</h1>
+    <p class="lede">
+      Do Kadane's ek saath chal rahe hain — <b>green track</b> maximum subarray dhoondh raha hai,
+      <b>red track</b> minimum subarray. Neeche <span class="pill">Next</span> dabao aur dono ko
+      parallel mein aage badhte dekho. End mein circle khulega jahan
+      <b>total − min = wrap</b> wala jaadu dikhega.
+    </p>
+  </header>
+
+  <!-- INPUT -->
+  <div class="panel">
+    <div class="panel-title"><span class="dot"></span>Apna array chuno</div>
+    <div class="examples" id="examples">
+      <button class="ex-btn on" data-arr="1,-2,3,-2">[1, -2, 3, -2]<span class="ex-tag">no-wrap jeetega → 3</span></button>
+      <button class="ex-btn" data-arr="5,-3,5">[5, -3, 5]<span class="ex-tag">wrap jeetega → 10</span></button>
+      <button class="ex-btn" data-arr="-3,-2,-3">[-3, -2, -3]<span class="ex-tag">all-negative trap → -2</span></button>
+      <button class="ex-btn" data-arr="3,-1,2,-1">[3, -1, 2, -1]<span class="ex-tag">tie: dono barabar → 4</span></button>
+      <button class="ex-btn" data-arr="-2,4,-5,4,-5,9,4">[-2,4,-5,4,-5,9,4]<span class="ex-tag">bada example → 15</span></button>
+    </div>
+    <div class="custom">
+      <input id="customInput" type="text" placeholder="Ya apne numbers likho — jaise: 8,-1,3,4"/>
+      <button id="loadBtn">Load karo</button>
+    </div>
+    <div class="err" id="errMsg"></div>
+  </div>
+
+  <!-- SCANNER -->
+  <div class="panel">
+    <div class="panel-title"><span class="dot"></span>Parallel Scan — dono Kadane's live</div>
+
+    <!-- MAX TRACK -->
+    <div class="track maxtrack" id="maxTrack">
+      <div class="track-head">
+        <div class="track-name max"><span class="swatch"></span>Max Kadane · bada subarray</div>
+        <div class="track-vals">
+          <span class="kv"><span class="k">curMax</span> <b id="curMaxVal">0</b></span>
+          <span class="kv"><span class="k">maxKadane</span> <b id="maxKVal">–</b></span>
+        </div>
+      </div>
+      <div class="cells" id="maxCells"></div>
+    </div>
+
+    <!-- MIN TRACK -->
+    <div class="track mintrack" id="minTrack">
+      <div class="track-head">
+        <div class="track-name min"><span class="swatch"></span>Min Kadane · chhota subarray</div>
+        <div class="track-vals">
+          <span class="kv"><span class="k">curMin</span> <b id="curMinVal">0</b></span>
+          <span class="kv"><span class="k">minKadane</span> <b id="minKVal">–</b></span>
+        </div>
+      </div>
+      <div class="cells" id="minCells"></div>
+    </div>
+
+    <!-- TOTAL -->
+    <div class="totalbar" style="margin-top:18px">
+      <div class="lbl"><span class="swatch"></span>Total Sum</div>
+      <div class="add" id="totalAdd"></div>
+      <div class="val" id="totalVal">0</div>
+    </div>
+  </div>
+
+  <!-- NARRATION -->
+  <div class="panel" style="padding:0;background:none;border:none;margin-bottom:18px">
+    <div class="narr">
+      <div class="who">Pratyush bhaiya bol rahe hain</div>
+      <div class="msg" id="narrMsg">Array select karo aur <b>Next</b> dabao — main har step samjhaunga.</div>
+      <div class="formula" id="narrFormula" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="btn" id="prevBtn">◂ Prev</button>
+    <button class="btn primary" id="nextBtn">Next ▸</button>
+    <button class="btn" id="playBtn">▶ Play</button>
+    <button class="btn" id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">
+      speed
+      <input id="speed" type="range" min="300" max="1600" step="100" value="850"/>
+    </div>
+    <div class="stepnum">step <b id="stepCur">0</b> / <span id="stepTot">0</span></div>
+  </div>
+  <div class="progress"><div class="fill" id="progressFill"></div></div>
+  <div class="hint">Keyboard: <kbd>←</kbd> prev · <kbd>→</kbd> next · <kbd>Space</kbd> play/pause</div>
+
+  <!-- CODE -->
+  <div class="panel" style="margin-top:18px">
+    <div class="panel-title"><span class="dot"></span>Java code — active line highlight ho rahi hai</div>
+    <div class="code" id="codeBox"></div>
+  </div>
+
+  <!-- DECISION -->
+  <div class="panel" id="decisionPanel">
+    <div class="panel-title"><span class="dot"></span>Final Faisla</div>
+    <div class="decision-grid">
+      <div class="verdict">
+        <h2 id="verdictTitle">Answer</h2>
+        <p class="sub" id="verdictSub"></p>
+        <div id="calcRows"></div>
+        <div id="winnerTag"></div>
+      </div>
+      <div class="ring-wrap">
+        <svg class="ring" id="ringSvg" viewBox="0 0 300 300" aria-label="circular array visualization"></svg>
+        <div class="ring-legend">
+          <span><i style="background:var(--max)"></i> subarray jo liya (answer)</span>
+          <span><i style="background:var(--min)"></i> jo chhoda</span>
+          <span><i style="background:var(--faint)"></i> baaki</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Kadane's Pattern · LC 918 &nbsp;·&nbsp; O(n) time, O(1) space<br>
+    Do cases: <span style="color:var(--max)">no-wrap = normal Kadane's</span> ·
+    <span style="color:var(--max)">wrap = total − minSubarray</span> ·
+    trap: <span style="color:var(--min)">saare negative ho to sirf maxKadane</span>
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+============================================================ */
+let nums = [1,-2,3,-2];
+let steps = [];
+let idx = 0;
+let playing = false;
+let timer = null;
+
+/* ============================================================
+   STEP BUILDER  — recreates the exact Java loop, snapshotting
+   every micro-move so the debugger can walk through it.
+============================================================ */
+function buildSteps(arr){
+  const S = [];
+  const n = arr.length;
+
+  let total = 0;
+  let curMax = 0, maxK = arr[0];
+  let curMin = 0, minK = arr[0];
+
+  // window trackers for highlighting
+  let maxCurStart = 0, maxBestS = 0, maxBestE = 0;
+  let minCurStart = 0, minBestS = 0, minBestE = 0;
+
+  const snap = (extra) => Object.assign({
+    total, curMax, maxK, curMin, minK,
+    maxCurStart, maxCurEnd: extra.i, maxBestS, maxBestE,
+    minCurStart, minCurEnd: extra.i, minBestS, minBestE,
+  }, extra);
+
+  // ---- INIT ----
+  S.push(snap({
+    phase:'init', i:-1, code:[1,2,3],
+    narr:`Shuruaat: <span class="m">totalSum = 0</span>. Dono Kadane ke best <span class="g">maxKadane</span> aur <span class="r">minKadane</span> ko pehle element se seed kiya — <span class="c">nums[0] = ${arr[0]}</span>. Running <span class="m">curMax</span> aur <span class="m">curMin</span> 0 se start.`,
+    formula:`maxKadane = minKadane = nums[0] = ${arr[0]}`,
+    maxCurStart:-1, maxCurEnd:-1, minCurStart:-1, minCurEnd:-1
+  }));
+
+  for(let i=0;i<n;i++){
+    const num = arr[i];
+
+    // ---- STEP A: total += num ----
+    const prevTotal = total;
+    total += num;
+    S.push(snap({
+      phase:'total', i, code:[5],
+      narr:`Element <span class="c">nums[${i}] = ${num}</span> ko <span class="m">totalSum</span> mein jodo. Yeh poore array ka sum banega — wrap wale case mein kaam aayega.`,
+      formula:`totalSum = ${prevTotal} + (${num}) = ${total}`
+    }));
+
+    // ---- STEP B: max kadane ----
+    const prevCurMax = curMax;
+    const extend = (prevCurMax + num) > num;   // extend vs restart
+    curMax = Math.max(prevCurMax + num, num);
+    if(!extend) maxCurStart = i;               // fresh restart at i
+    const maxImproved = curMax > maxK;
+    if(maxImproved){ maxK = curMax; maxBestS = maxCurStart; maxBestE = i; }
+    S.push(snap({
+      phase:'max', i, code:[6,7],
+      narr:`<span class="g">Max track:</span> ${extend
+          ? `<span class="g">extend</span> — pichla curMax (${prevCurMax}) positive tha, isliye current mein jod diya.`
+          : `<span class="g">restart</span> — pichla curMax le jaana ghaata tha, isliye yahin se naya subarray shuru.`} ${maxImproved
+          ? `Naya best mila → <span class="g">maxKadane = ${maxK}</span>.`
+          : `Best abhi bhi <span class="g">${maxK}</span> hi hai.`}`,
+      formula:`curMax = max(${prevCurMax}+${num}, ${num}) = <span class="pick">${curMax}</span>   |   maxKadane = max(${maxImproved?prevBest(maxK,curMax):maxK}, ${curMax}) = <span class="win">${maxK}</span>`
+    }));
+
+    // ---- STEP C: min kadane ----
+    const prevCurMin = curMin;
+    const extendMin = (prevCurMin + num) < num;
+    curMin = Math.min(prevCurMin + num, num);
+    if(!extendMin) minCurStart = i;
+    const minImproved = curMin < minK;
+    if(minImproved){ minK = curMin; minBestS = minCurStart; minBestE = i; }
+    S.push(snap({
+      phase:'min', i, code:[8,9],
+      narr:`<span class="r">Min track:</span> ${extendMin
+          ? `<span class="r">extend</span> — pichla curMin negative tha, current ko jod ke aur chhota kiya.`
+          : `<span class="r">restart</span> — pichle ko le jaana faayda nahi, yahin se naya min subarray.`} ${minImproved
+          ? `Naya sabse chhota → <span class="r">minKadane = ${minK}</span>.`
+          : `Min abhi bhi <span class="r">${minK}</span>.`}`,
+      formula:`curMin = min(${prevCurMin}+${num}, ${num}) = <span class="pick">${curMin}</span>   |   minKadane = min(${minImproved?prevBest(minK,curMin):minK}, ${curMin}) = <span class="win" style="color:var(--min)">${minK}</span>`
+    }));
+  }
+
+  // ---- DECISION ----
+  const allNeg = maxK < 0;
+  const wrap = total - minK;
+  let answer, mode;
+  if(allNeg){ answer = maxK; mode='allneg'; }
+  else if(wrap > maxK){ answer = wrap; mode='wrap'; }
+  else { answer = maxK; mode='nowrap'; }
+
+  S.push(snap({
+    phase:'decision', i:n-1, code:[11,12],
+    decision:{ allNeg, wrap, maxK, minK, total, answer, mode, maxBestS, maxBestE, minBestS, minBestE, n },
+    narr: allNeg
+      ? `<span class="r">Trap alert!</span> maxKadane (${maxK}) khud negative hai → matlab saare elements negative hain. Aise mein <span class="g">total − min</span> galat 0 dega, aur empty subarray allowed nahi. Isliye seedha <span class="g">maxKadane = ${maxK}</span> hi answer.`
+      : (mode==='wrap'
+          ? `Wrap wala jeeta! Beech ka sabse chhota chunk (<span class="r">minKadane = ${minK}</span>) nikaal do → <span class="g">total − min = ${total} − (${minK}) = ${wrap}</span>, jo no-wrap (${maxK}) se bada hai.`
+          : `No-wrap jeeta. Seedha Kadane's ka <span class="g">maxKadane = ${maxK}</span>, wrap wale (${wrap}) se bada ya barabar hai.`),
+    formula: allNeg
+      ? `maxKadane < 0  →  return ${maxK}`
+      : `return max(maxKadane ${maxK}, total−min ${total}−(${minK})=${wrap}) = <span class="win">${answer}</span>`
+  }));
+
+  return S;
+}
+// helper: value the best held BEFORE this improvement (for display only)
+function prevBest(cur, val){ return cur===val ? '…' : cur; }
+
+/* ============================================================
+   RENDER
+============================================================ */
+const $ = id => document.getElementById(id);
+
+function buildCells(container, arr){
+  container.innerHTML = '';
+  arr.forEach((v,i)=>{
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.innerHTML = `<span class="idx">${i}</span>${v}`;
+    container.appendChild(c);
+  });
+}
+
+function paintTrack(container, curS, curE, bestS, bestE, curIdx){
+  [...container.children].forEach((cell,i)=>{
+    cell.classList.remove('inwin','best','cur','dimmed');
+    const inWin  = curS>=0 && i>=curS && i<=curE;
+    const inBest = bestS>=0 && i>=bestS && i<=bestE;
+    if(inWin) cell.classList.add('inwin');
+    if(inBest) cell.classList.add('best');
+    if(i===curIdx) cell.classList.add('cur');
+    if(curIdx>=0 && i>curIdx) cell.classList.add('dimmed');
+  });
+}
+
+const CODE = [
+  [1,'<span class="tok-ty">int</span> totalSum = <span class="tok-nm">0</span>;'],
+  [2,'<span class="tok-ty">int</span> maxKadane = nums[<span class="tok-nm">0</span>], curMax = <span class="tok-nm">0</span>;'],
+  [3,'<span class="tok-ty">int</span> minKadane = nums[<span class="tok-nm">0</span>], curMin = <span class="tok-nm">0</span>;'],
+  [4,'<span class="tok-kw">for</span> (<span class="tok-ty">int</span> num : nums) {'],
+  [5,'&nbsp;&nbsp;&nbsp;&nbsp;totalSum += num;'],
+  [6,'&nbsp;&nbsp;&nbsp;&nbsp;curMax = <span class="tok-fn">Math.max</span>(curMax + num, num);'],
+  [7,'&nbsp;&nbsp;&nbsp;&nbsp;maxKadane = <span class="tok-fn">Math.max</span>(maxKadane, curMax);'],
+  [8,'&nbsp;&nbsp;&nbsp;&nbsp;curMin = <span class="tok-fn">Math.min</span>(curMin + num, num);'],
+  [9,'&nbsp;&nbsp;&nbsp;&nbsp;minKadane = <span class="tok-fn">Math.min</span>(minKadane, curMin);'],
+  [10,'}'],
+  [11,'<span class="tok-kw">if</span> (maxKadane < <span class="tok-nm">0</span>) <span class="tok-kw">return</span> maxKadane;  <span class="tok-cm">// all-negative</span>'],
+  [12,'<span class="tok-kw">return</span> <span class="tok-fn">Math.max</span>(maxKadane, totalSum - minKadane);'],
+];
+
+function buildCode(){
+  $('codeBox').innerHTML = CODE.map(([n,html])=>
+    `<div class="ln" data-ln="${n}"><span class="no">${n}</span><span>${html}</span></div>`
+  ).join('');
+}
+
+function paintCode(lines){
+  [...$('codeBox').children].forEach(el=>{
+    el.classList.toggle('hot', lines.includes(+el.dataset.ln));
+  });
+}
+
+function render(){
+  const s = steps[idx];
+
+  // values
+  $('curMaxVal').textContent = s.curMax;
+  $('maxKVal').textContent   = s.maxK;
+  $('curMinVal').textContent = s.curMin;
+  $('minKVal').textContent   = s.minK;
+  $('totalVal').textContent  = s.total;
+
+  // total add annotation
+  if(s.phase==='total'){
+    const num = nums[s.i];
+    $('totalAdd').innerHTML = `+ (${num}) ⟶`;
+  } else {
+    $('totalAdd').textContent = '';
+  }
+
+  // tracks
+  paintTrack($('maxCells'), s.maxCurStart, s.maxCurEnd, s.maxBestS, s.maxBestE,
+             (s.phase==='max'||s.phase==='total'||s.phase==='min')?s.i:(s.phase==='decision'?-1:-1));
+  paintTrack($('minCells'), s.minCurStart, s.minCurEnd, s.minBestS, s.minBestE,
+             (s.phase==='max'||s.phase==='total'||s.phase==='min')?s.i:-1);
+
+  // only glow current on relevant tracks: show cur on both during scan
+  // (handled above — curIdx = s.i during scan phases)
+
+  // narration
+  $('narrMsg').innerHTML = s.narr;
+  if(s.formula){ $('narrFormula').style.display='block'; $('narrFormula').innerHTML = s.formula; }
+  else { $('narrFormula').style.display='none'; }
+
+  // code
+  paintCode(s.code);
+
+  // step counter + progress
+  $('stepCur').textContent = idx;
+  $('stepTot').textContent = steps.length-1;
+  $('progressFill').style.width = (idx/(steps.length-1)*100)+'%';
+
+  // buttons
+  $('prevBtn').disabled = idx===0;
+  $('nextBtn').disabled = idx===steps.length-1;
+
+  // decision
+  if(s.phase==='decision'){ showDecision(s.decision); }
+  else { $('decisionPanel').classList.remove('show'); }
+}
+
+/* ============================================================
+   DECISION + RING
+============================================================ */
+function showDecision(d){
+  const panel = $('decisionPanel');
+  panel.classList.add('show');
+
+  const titles = {
+    nowrap:'No-wrap subarray jeeta 🟢',
+    wrapt:'Wrap-around subarray jeeta 🔄',
+    wrap:'Wrap-around subarray jeeta 🔄',
+    allneg:'All-negative trap handle hua ⚠️'
+  };
+  $('verdictTitle').textContent = titles[d.mode] || 'Answer';
+  $('verdictSub').innerHTML = d.allNeg
+    ? `Saare numbers negative the, isliye wrap formula skip — warna 0 aa jaata jo empty subarray hota (allowed nahi).`
+    : (d.mode==='wrap'
+        ? `Beech ka minimum chunk kaat ke jo bacha, wahi sabse bada nikla.`
+        : `Poora scan seedha subarray ne jeet liya, circle ki zaroorat hi nahi padi.`);
+
+  const rows = [];
+  rows.push(`<div class="calc-row max"><span class="k">maxKadane (no-wrap best)</span><span class="v">${d.maxK}</span></div>`);
+  if(!d.allNeg){
+    rows.push(`<div class="calc-row total"><span class="k">totalSum</span><span class="v">${d.total}</span></div>`);
+    rows.push(`<div class="calc-row min"><span class="k">minKadane (chhoda hua chunk)</span><span class="v">${d.minK}</span></div>`);
+    rows.push(`<div class="calc-row wrap"><span class="k">wrap = total − min</span><span class="v" style="color:var(--max)">${d.total} − (${d.minK}) = ${d.wrap}</span></div>`);
+  } else {
+    rows.push(`<div class="calc-row"><span class="k">maxKadane < 0 ?</span><span class="v" style="color:var(--min)">haan → wrap skip</span></div>`);
+  }
+  rows.push(`<div class="calc-row ansrow"><span class="k">Final answer</span><span class="v">${d.answer}</span></div>`);
+  $('calcRows').innerHTML = rows.join('');
+
+  const tagClass = d.mode==='allneg'?'allneg':(d.mode==='wrap'?'wrapt':'nowrap');
+  const tagText  = d.mode==='allneg'?'return maxKadane':(d.mode==='wrap'?'return total − minKadane':'return maxKadane');
+  $('winnerTag').innerHTML = `<span class="winner-tag ${tagClass}">${tagText}</span>`;
+
+  drawRing(d);
+}
+
+function drawRing(d){
+  const svg = $('ringSvg');
+  const n = d.n;
+  const cx=150, cy=150, R=100;
+  const pts = [];
+  for(let i=0;i<n;i++){
+    const ang = -Math.PI/2 + i*2*Math.PI/n;
+    pts.push({x:cx+R*Math.cos(ang), y:cy+R*Math.sin(ang), ang});
+  }
+
+  // decide which indices are "taken" (answer subarray) vs "removed"
+  let taken = new Set(), removed = new Set();
+  if(d.allNeg || d.mode==='nowrap'){
+    for(let i=d.maxBestS;i<=d.maxBestE;i++) taken.add(i);
+  } else { // wrap: remove the min chunk, keep everything else (wraps the seam)
+    for(let i=d.minBestS;i<=d.minBestE;i++) removed.add(i);
+    for(let i=0;i<n;i++) if(!removed.has(i)) taken.add(i);
+  }
+
+  const colorOf = i => taken.has(i) ? 'var(--max)' : (removed.has(i) ? 'var(--min)' : 'var(--faint)');
+
+  let out = '';
+  // edges (the ring). seam edge (n-1 -> 0) dashed to signal circularity
+  for(let i=0;i<n;i++){
+    const a=pts[i], b=pts[(i+1)%n];
+    const seam = (i===n-1);
+    // edge counts as "taken" if both endpoints taken (adjacent in kept subarray)
+    const bothTaken = taken.has(i) && taken.has((i+1)%n);
+    const stroke = bothTaken ? 'var(--max)' : 'var(--line)';
+    const w = bothTaken ? 3.5 : 1.5;
+    out += `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}"
+             stroke="${stroke}" stroke-width="${w}" ${seam?'stroke-dasharray="4 5"':''} stroke-linecap="round"/>`;
+  }
+  // seam label
+  out += `<text x="${cx}" y="18" fill="var(--faint)" font-size="9" font-family="var(--mono)" text-anchor="middle">↻ end ↔ start</text>`;
+
+  // nodes
+  pts.forEach((p,i)=>{
+    const col = colorOf(i);
+    const fill = taken.has(i)?'var(--max-dim)':(removed.has(i)?'var(--min-dim)':'var(--bg)');
+    out += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="17" fill="${fill}" stroke="${col}" stroke-width="2"/>`;
+    out += `<text x="${p.x.toFixed(1)}" y="${(p.y+4).toFixed(1)}" fill="${col}" font-size="13"
+             font-family="var(--mono)" font-weight="700" text-anchor="middle">${nums[i]}</text>`;
+    // index label outside
+    const lx = cx+(R+30)*Math.cos(p.ang), ly = cy+(R+30)*Math.sin(p.ang);
+    out += `<text x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" fill="var(--faint)" font-size="9"
+             font-family="var(--mono)" text-anchor="middle">i=${i}</text>`;
+  });
+
+  // center answer
+  out += `<text x="${cx}" y="${cy-4}" fill="var(--muted)" font-size="10" font-family="var(--mono)" text-anchor="middle">answer</text>`;
+  out += `<text x="${cx}" y="${cy+16}" fill="var(--cur)" font-size="22" font-family="var(--mono)" font-weight="700" text-anchor="middle">${d.answer}</text>`;
+
+  svg.innerHTML = out;
+}
+
+/* ============================================================
+   NAV
+============================================================ */
+function go(to){
+  idx = Math.max(0, Math.min(steps.length-1, to));
+  render();
+  if(idx===steps.length-1) stop();
+}
+function next(){ if(idx<steps.length-1) go(idx+1); else stop(); }
+function prev(){ go(idx-1); }
+
+function play(){
+  if(idx>=steps.length-1) go(0);
+  playing = true;
+  $('playBtn').textContent = '⏸ Pause';
+  const tick = ()=>{
+    if(!playing) return;
+    if(idx>=steps.length-1){ stop(); return; }
+    next();
+    timer = setTimeout(tick, +$('speed').value);
+  };
+  timer = setTimeout(tick, +$('speed').value);
+}
+function stop(){
+  playing = false;
+  $('playBtn').textContent = '▶ Play';
+  if(timer) clearTimeout(timer);
+}
+function togglePlay(){ playing ? stop() : play(); }
+
+function reset(){
+  stop(); idx=0; render();
+}
+
+/* ============================================================
+   LOAD ARRAY
+============================================================ */
+function loadArray(arr){
+  stop();
+  nums = arr;
+  steps = buildSteps(nums);
+  idx = 0;
+  buildCells($('maxCells'), nums);
+  buildCells($('minCells'), nums);
+  render();
+}
+
+function parseInput(str){
+  const parts = str.split(',').map(s=>s.trim()).filter(s=>s.length);
+  if(parts.length===0) throw 'Kuch numbers to daalo — jaise 5,-3,5';
+  if(parts.length>16) throw 'Bhai 16 tak hi — warna circle chhota pad jaayega 🙂';
+  const out = parts.map(p=>{
+    if(!/^-?\d+$/.test(p)) throw `"${p}" ek integer nahi hai`;
+    return parseInt(p,10);
+  });
+  return out;
+}
+
+/* ============================================================
+   WIRE UP
+============================================================ */
+document.querySelectorAll('.ex-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.ex-btn').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    $('errMsg').textContent='';
+    loadArray(btn.dataset.arr.split(',').map(Number));
+  });
+});
+
+$('loadBtn').addEventListener('click',()=>{
+  try{
+    const arr = parseInput($('customInput').value);
+    document.querySelectorAll('.ex-btn').forEach(b=>b.classList.remove('on'));
+    $('errMsg').textContent='';
+    loadArray(arr);
+  }catch(e){ $('errMsg').textContent = '⚠ '+e; }
+});
+$('customInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('loadBtn').click(); });
+
+$('nextBtn').addEventListener('click',next);
+$('prevBtn').addEventListener('click',prev);
+$('playBtn').addEventListener('click',togglePlay);
+$('resetBtn').addEventListener('click',reset);
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.key==='ArrowRight'){ e.preventDefault(); next(); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); prev(); }
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+/* init */
+buildCode();
+loadArray(nums);
+</script>
+</body>
+</html>
