@@ -6,7 +6,7 @@
 
 > 🔗 **[Open the interactive visualizer →]
 
-
+(https://yashika807.github.io/DSA-PatternWise/Matrix-Questions/Rotate-Image.html)
 
 ---
 
