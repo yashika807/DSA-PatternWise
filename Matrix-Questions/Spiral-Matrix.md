@@ -5,10 +5,9 @@
 **Link:** https://leetcode.com/problems/spiral-matrix/
 
 > 🔗 **[Open the interactive visualizer →]
->
-> 
-> 
 
+(https://yashika807.github.io/DSA-PatternWise/Matrix-Questions/Spiral-Matrix.html)
+ 
 ---
 
 ## Problem
