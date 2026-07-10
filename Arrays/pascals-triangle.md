@@ -2,7 +2,7 @@
 
 > 🔗 **[Interactive Visualizer dekho »]
 
-(https://yashika807.github.io/DSA-PatternWise/arrays/pascals-triangle.html)**
+(https://yashika807.github.io/DSA-PatternWise/Arrays/pascals-triangle.html)**
 
 **Difficulty:** Easy  ·  **Pattern:** Build-from-previous-row  ·  **Tags:** Array, Dynamic Programming
 
