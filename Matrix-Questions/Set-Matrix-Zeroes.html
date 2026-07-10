@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Set Matrix Zeroes · O(1) Space Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+    --zero:#C43B34;
+    --zero-fill:#FBE7E5;
+    --marker:#C67A00;
+    --marker-fill:#FBEFD6;
+    --cleared-fill:#F4DBDA;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --ok:#2E7D57;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 64px;}
+
+  /* Header */
+  header{margin-bottom:24px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(28px,5vw,44px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:6px 0 8px;line-height:1.05;
+  }
+  h1 .z{color:var(--zero);}
+  .sub{color:var(--ink-soft);max-width:60ch;font-size:15px;}
+  .meta{
+    display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+  }
+  .tag{
+    border:1px solid var(--line);border-radius:999px;
+    padding:3px 11px;background:#fff;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);font-weight:700;}
+
+  /* Layout */
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:22px;
+    margin-top:26px;align-items:start;
+  }
+  @media(max-width:820px){.stage{grid-template-columns:1fr;}}
+
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);padding:20px;
+  }
+  .panel h2{
+    font-size:13px;text-transform:uppercase;letter-spacing:.12em;
+    font-family:"JetBrains Mono",monospace;font-weight:600;
+    color:var(--ink-soft);margin:0 0 16px;
+  }
+
+  /* Matrix */
+  .board-hold{display:flex;justify-content:center;padding:6px 0 2px;overflow:auto;}
+  .board{
+    display:grid;gap:5px;position:relative;
+    --cell:52px;
+  }
+  .cell{
+    width:var(--cell);height:var(--cell);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:500;
+    font-size:17px;border-radius:9px;background:#fff;
+    border:1.5px solid var(--line);color:var(--ink);
+    transition:transform .18s ease, background .25s ease, border-color .25s ease, box-shadow .18s ease;
+    position:relative;
+  }
+  .cell.rail{background:var(--rail);border-color:var(--line);}
+  .cell.zero{background:var(--zero-fill);border-color:var(--zero);color:var(--zero);font-weight:700;}
+  .cell.marker{background:var(--marker-fill);border-color:var(--marker);color:var(--marker);font-weight:700;}
+  .cell.cleared{background:var(--cleared-fill);border-color:#E4A9A5;color:#B04841;}
+  .cell.focus{
+    transform:translateY(-3px) scale(1.05);
+    box-shadow:0 0 0 3px rgba(47,109,181,.25), 0 10px 22px -12px rgba(47,109,181,.6);
+    border-color:var(--accent);z-index:3;
+  }
+  .cell.scan{box-shadow:0 0 0 3px rgba(47,109,181,.18);border-color:var(--accent);}
+
+  /* Rail labels */
+  .board-frame{display:inline-grid;grid-template-columns:auto auto;grid-template-rows:auto auto;gap:10px;align-items:center;}
+  .lbl-col{grid-column:2;grid-row:1;text-align:center;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--marker);font-weight:600;}
+  .lbl-row{grid-column:1;grid-row:2;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--marker);font-weight:600;}
+  .board-hold .board{grid-column:2;grid-row:2;}
+
+  /* Phase rail */
+  .phases{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+  .phase{
+    flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;
+    padding:8px 6px;text-align:center;background:#fff;
+    font-size:11px;color:var(--ink-soft);position:relative;
+    font-family:"JetBrains Mono",monospace;
+  }
+  .phase .n{display:block;font-weight:700;font-size:15px;color:var(--ink);margin-bottom:2px;}
+  .phase.active{border-color:var(--accent);background:#F2F7FC;color:var(--accent);}
+  .phase.active .n{color:var(--accent);}
+  .phase.done{border-color:var(--ok);}
+  .phase.done .n{color:var(--ok);}
+
+  /* Narration */
+  .narrate{
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;min-height:78px;font-size:14.5px;color:var(--ink);
+  }
+  .narrate .step-k{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;
+  }
+  .narrate code{
+    font-family:"JetBrains Mono",monospace;background:#fff;
+    border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12.5px;
+  }
+
+  /* Controls */
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    border-radius:9px;padding:9px 15px;cursor:pointer;transition:all .15s ease;
+  }
+  button:hover:not(:disabled){border-color:var(--accent);color:var(--accent);transform:translateY(-1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+  button.primary:hover:not(:disabled){background:var(--accent);border-color:var(--accent);color:#fff;transform:translateY(-1px);}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+
+  /* Legend */
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px;font-size:12px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:4px;border:1.5px solid;display:inline-block;}
+  .sw.zero{background:var(--zero-fill);border-color:var(--zero);}
+  .sw.marker{background:var(--marker-fill);border-color:var(--marker);}
+  .sw.cleared{background:var(--cleared-fill);border-color:#E4A9A5;}
+  .sw.focus{background:#fff;border-color:var(--accent);}
+
+  /* Input */
+  .setup{margin-top:22px;}
+  .preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  textarea{
+    width:100%;font-family:"JetBrains Mono",monospace;font-size:13px;
+    border:1px solid var(--line);border-radius:9px;padding:11px;
+    resize:vertical;min-height:76px;color:var(--ink);background:var(--paper);
+  }
+  textarea:focus{outline:none;border-color:var(--accent);}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:6px;}
+  .err{color:var(--zero);font-size:12.5px;margin-top:8px;min-height:16px;}
+
+  /* Code */
+  .code-wrap{margin-top:22px;}
+  pre{
+    margin:0;background:#fff;border:1px solid var(--line);border-radius:12px;
+    padding:16px 14px;overflow:auto;box-shadow:var(--shadow);
+  }
+  code.java{font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.65;display:block;white-space:pre;}
+  .ln{display:block;padding:0 6px;border-radius:4px;transition:background .3s ease;}
+  .ln.hl{background:#F2F7FC;box-shadow:inset 3px 0 0 var(--accent);}
+  .kw{color:#9B2D9B;} .ty{color:var(--accent);} .cm{color:#8A94A6;font-style:italic;} .nm{color:#B06400;}
+
+  footer{margin-top:34px;text-align:center;color:var(--ink-soft);font-size:12.5px;font-family:"JetBrains Mono",monospace;}
+  footer a{color:var(--accent);text-decoration:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Pattern · Matrix / In-place bookkeeping</div>
+    <h1>Set Matrix <span class="z">Zero</span>es</h1>
+    <p class="sub">LeetCode 73. If any cell is <code>0</code>, its whole row and column become zero — done <b>in place</b>. This walks the constant-space trick: the first row and first column stop being data and start being a notepad.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b> O(m·n)</span>
+      <span class="tag"><b>Space</b> O(1)</span>
+      <span class="tag"><b>Difficulty</b> Medium</span>
+    </div>
+  </header>
+
+  <div class="stage">
+    <!-- LEFT: board -->
+    <div class="panel">
+      <h2>The Matrix</h2>
+      <div class="board-hold">
+        <div class="board-frame">
+          <div class="lbl-col">marker column → row 0</div>
+          <div class="lbl-row">marker row → col 0</div>
+          <div class="board" id="board"></div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="sw zero"></i> original 0 (trigger)</span>
+        <span><i class="sw marker"></i> marker set on rail</span>
+        <span><i class="sw cleared"></i> zeroed cell</span>
+        <span><i class="sw focus"></i> current focus</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: control -->
+    <div class="panel">
+      <h2>Walkthrough</h2>
+      <div class="phases" id="phases"></div>
+      <div class="narrate" id="narrate">
+        <span class="step-k">Ready</span>
+        Press <b>Play</b> or <b>Step</b> to begin.
+      </div>
+      <div class="controls">
+        <button id="back">◀ Back</button>
+        <button id="play" class="primary">▶ Play</button>
+        <button id="step">Step ▶</button>
+        <button id="reset">↺ Reset</button>
+        <div class="spacer"></div>
+        <label class="speed">slow
+          <input type="range" id="speed" min="200" max="1400" value="750" step="50" />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETUP -->
+  <div class="panel setup">
+    <h2>Input</h2>
+    <div class="preset-row">
+      <button data-preset="ex1">Example 1 · 3×3</button>
+      <button data-preset="ex2">Example 2 · 3×4</button>
+      <button data-preset="ring">Zero border</button>
+      <button data-preset="rand">Randomize</button>
+    </div>
+    <textarea id="matinput" spellcheck="false">1 1 1
+1 0 1
+1 1 1</textarea>
+    <div class="hint">One row per line · values separated by spaces or commas · a <code>0</code> anywhere triggers a clear.</div>
+    <div class="err" id="err"></div>
+    <div class="controls">
+      <button class="primary" id="load">Load matrix</button>
+    </div>
+  </div>
+
+  <!-- CODE -->
+  <div class="panel code-wrap">
+    <h2>Java · O(1) space (line highlights follow the steps)</h2>
+    <pre><code class="java" id="code"></code></pre>
+  </div>
+
+  <footer>
+    Built for <a href="https://leetcode.com/problems/set-matrix-zeroes/" target="_blank" rel="noopener">DSA-PatternWise</a> · step through, don't memorize.
+  </footer>
+</div>
+
+<script>
+/* ---------- Java source (for line-highlight display) ---------- */
+const JAVA = [
+  {t:'public void setZeroes(int[][] m){', p:[]},
+  {t:'    int R = m.length, C = m[0].length;', p:[]},
+  {t:'    boolean r0 = false, c0 = false;', p:[]},
+  {t:'', p:[]},
+  {t:'    // 1. remember if row 0 / col 0 hold a zero', p:[1]},
+  {t:'    for (int j=0;j<C;j++) if (m[0][j]==0) r0=true;', p:[1]},
+  {t:'    for (int i=0;i<R;i++) if (m[i][0]==0) c0=true;', p:[1]},
+  {t:'', p:[]},
+  {t:'    // 2. use rails as notepad for the inner grid', p:[2]},
+  {t:'    for (int i=1;i<R;i++)', p:[2]},
+  {t:'      for (int j=1;j<C;j++)', p:[2]},
+  {t:'        if (m[i][j]==0){ m[i][0]=0; m[0][j]=0; }', p:[2]},
+  {t:'', p:[]},
+  {t:'    // 3. apply the notes to the inner grid', p:[3]},
+  {t:'    for (int i=1;i<R;i++)', p:[3]},
+  {t:'      for (int j=1;j<C;j++)', p:[3]},
+  {t:'        if (m[i][0]==0 || m[0][j]==0) m[i][j]=0;', p:[3]},
+  {t:'', p:[]},
+  {t:'    // 4. finally clear row 0 / col 0 if flagged', p:[4,5]},
+  {t:'    if (r0) for (int j=0;j<C;j++) m[0][j]=0;', p:[4]},
+  {t:'    if (c0) for (int i=0;i<R;i++) m[i][0]=0;', p:[5]},
+  {t:'}', p:[]},
+];
+
+function renderCode(activePhase){
+  const el=document.getElementById('code');
+  el.innerHTML = JAVA.map(row=>{
+    let s=row.t
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/(\/\/[^<]*)/g,'<span class="cm">$1</span>')
+      .replace(/\b(public|void|int|boolean|for|if|false|true)\b/g,'<span class="kw">$1</span>');
+    const hl = row.p.includes(activePhase) ? ' hl':'';
+    return `<span class="ln${hl}">${s||'&nbsp;'}</span>`;
+  }).join('');
+}
+
+/* ---------- Presets ---------- */
+const PRESETS = {
+  ex1:[[1,1,1],[1,0,1],[1,1,1]],
+  ex2:[[0,1,2,0],[3,4,5,2],[1,3,1,5]],
+  ring:[[0,1,1,1,0],[1,2,3,4,1],[1,5,6,7,1],[0,1,1,1,0]],
+};
+function randMatrix(){
+  const R=2+Math.floor(Math.random()*3), C=3+Math.floor(Math.random()*3);
+  const g=[];
+  for(let i=0;i<R;i++){const row=[];for(let j=0;j<C;j++){
+    row.push(Math.random()<0.16?0:1+Math.floor(Math.random()*8));
+  }g.push(row);}
+  // guarantee at least one zero
+  if(!g.flat().includes(0)) g[Math.floor(Math.random()*R)][Math.floor(Math.random()*C)]=0;
+  return g;
+}
+
+/* ---------- Step builder (simulates the O(1) algorithm) ---------- */
+function buildSteps(input){
+  const R=input.length, C=input[0].length;
+  const g=input.map(r=>r.slice());
+  const role=Array.from({length:R},()=>Array(C).fill('normal'));
+  for(let i=0;i<R;i++)for(let j=0;j<C;j++) if(g[i][j]===0) role[i][j]='zero';
+
+  const steps=[];
+  const snap=(o)=>steps.push({
+    grid:g.map(r=>r.slice()),
+    role:role.map(r=>r.slice()),
+    focus:o.focus||[],
+    scan:o.scan||[],
+    phase:o.phase, key:o.key, text:o.text,
+  });
+
+  let r0=false,c0=false;
+
+  snap({phase:0,key:'Start',text:'Goal: any <code>0</code> zeroes its full row and column, using no extra matrices. Watch row 0 and column 0 turn into a marker rail.'});
+
+  // Phase 1: scan first row then first column for flags
+  for(let j=0;j<C;j++){
+    if(g[0][j]===0) r0=true;
+    snap({phase:1,focus:[[0,j]],scan:[[0,'row']],key:'Phase 1 · scan row 0',
+      text:`Check <code>m[0][${j}] = ${g[0][j]}</code>. Row-0 flag <code>r0 = ${r0}</code>.`});
+  }
+  for(let i=0;i<R;i++){
+    if(g[i][0]===0) c0=true;
+    snap({phase:1,focus:[[i,0]],scan:[[0,'col']],key:'Phase 1 · scan col 0',
+      text:`Check <code>m[${i}][0] = ${g[i][0]}</code>. Col-0 flag <code>c0 = ${c0}</code>.`});
+  }
+  snap({phase:1,key:'Phase 1 · done',
+    text:`Flags locked: <code>r0 = ${r0}</code>, <code>c0 = ${c0}</code>. Row 0 & col 0 are now free to use as scratch notes.`});
+
+  // Phase 2: mark using rails (inner grid only)
+  for(let i=1;i<R;i++){
+    for(let j=1;j<C;j++){
+      if(g[i][j]===0){
+        g[i][0]=0; g[0][j]=0;
+        if(role[i][0]!=='zero') role[i][0]='marker';
+        if(role[0][j]!=='zero') role[0][j]='marker';
+        snap({phase:2,focus:[[i,j],[i,0],[0,j]],key:'Phase 2 · mark',
+          text:`<code>m[${i}][${j}] = 0</code> → jot markers on the rails: <code>m[${i}][0]=0</code> and <code>m[0][${j}]=0</code>.`});
+      }else{
+        snap({phase:2,focus:[[i,j]],key:'Phase 2 · mark',
+          text:`<code>m[${i}][${j}] = ${g[i][j]}</code> is non-zero — nothing to mark.`});
+      }
+    }
+  }
+
+  // Phase 3: apply notes to inner grid
+  for(let i=1;i<R;i++){
+    for(let j=1;j<C;j++){
+      const hit = g[i][0]===0 || g[0][j]===0;
+      if(hit && g[i][j]!==0){
+        g[i][j]=0; role[i][j]='cleared';
+        snap({phase:3,focus:[[i,j],[i,0],[0,j]],key:'Phase 3 · apply',
+          text:`Rail says clear: <code>m[${i}][0]</code> or <code>m[0][${j}]</code> is 0 → set <code>m[${i}][${j}] = 0</code>.`});
+      }else{
+        snap({phase:3,focus:[[i,j],[i,0],[0,j]],key:'Phase 3 · apply',
+          text:`<code>m[${i}][${j}]</code> stays — its rails are clean.`});
+      }
+    }
+  }
+
+  // Phase 4: clear row 0 if flagged
+  if(r0){
+    for(let j=0;j<C;j++){ g[0][j]=0; role[0][j]='cleared'; }
+    snap({phase:4,focus:Array.from({length:C},(_,j)=>[0,j]),key:'Phase 4 · clear row 0',
+      text:`<code>r0</code> was true → wipe the entire first row.`});
+  }else{
+    snap({phase:4,key:'Phase 4 · row 0',text:`<code>r0</code> was false → first row keeps its values.`});
+  }
+  // Phase 5: clear col 0 if flagged
+  if(c0){
+    for(let i=0;i<R;i++){ g[i][0]=0; role[i][0]='cleared'; }
+    snap({phase:5,focus:Array.from({length:R},(_,i)=>[i,0]),key:'Phase 5 · clear col 0',
+      text:`<code>c0</code> was true → wipe the entire first column. Done — in place, O(1) space.`});
+  }else{
+    snap({phase:5,key:'Phase 5 · done',text:`<code>c0</code> was false → first column stays. Done — in place, O(1) space.`});
+  }
+
+  return {steps,R,C};
+}
+
+/* ---------- Renderer ---------- */
+const PHASE_NAMES=['Setup','Scan flags','Mark rails','Apply notes','Clear row 0','Clear col 0'];
+let STATE={steps:[],idx:0,R:0,C:0,timer:null,playing:false};
+
+function draw(){
+  const s=STATE.steps[STATE.idx];
+  const board=document.getElementById('board');
+  board.style.gridTemplateColumns=`repeat(${STATE.C}, var(--cell))`;
+  // shrink cells for big matrices
+  const cell = STATE.C>6||STATE.R>6 ? 42 : 52;
+  board.style.setProperty('--cell', cell+'px');
+  document.querySelector('.board').style.setProperty('--cell',cell+'px');
+
+  const focusSet=new Set(s.focus.map(f=>f[0]+','+f[1]));
+  const scanRow = s.scan.some(x=>x[1]==='row');
+  const scanCol = s.scan.some(x=>x[1]==='col');
+
+  let html='';
+  for(let i=0;i<STATE.R;i++){
+    for(let j=0;j<STATE.C;j++){
+      const cls=['cell'];
+      if(i===0||j===0) cls.push('rail');
+      const role=s.role[i][j];
+      if(role==='zero') cls.push('zero');
+      else if(role==='marker') cls.push('marker');
+      else if(role==='cleared') cls.push('cleared');
+      if(focusSet.has(i+','+j)) cls.push('focus');
+      else if((scanRow&&i===0)||(scanCol&&j===0)) cls.push('scan');
+      html+=`<div class="${cls.join(' ')}">${s.grid[i][j]}</div>`;
+    }
+  }
+  board.innerHTML=html;
+
+  // phase rail
+  document.getElementById('phases').innerHTML=PHASE_NAMES.map((nm,k)=>{
+    let c='phase';
+    if(k===s.phase) c+=' active';
+    else if(k<s.phase) c+=' done';
+    return `<div class="${c}"><span class="n">${k}</span>${nm}</div>`;
+  }).join('');
+
+  // narration
+  document.getElementById('narrate').innerHTML=
+    `<span class="step-k">${s.key} · ${STATE.idx+1}/${STATE.steps.length}</span>${s.text}`;
+
+  renderCode(s.phase);
+
+  document.getElementById('back').disabled=STATE.idx===0;
+  document.getElementById('step').disabled=STATE.idx===STATE.steps.length-1;
+}
+
+function go(delta){
+  STATE.idx=Math.max(0,Math.min(STATE.steps.length-1,STATE.idx+delta));
+  draw();
+  if(STATE.idx===STATE.steps.length-1) stopPlay();
+}
+function stopPlay(){
+  STATE.playing=false;
+  clearInterval(STATE.timer);
+  document.getElementById('play').textContent='▶ Play';
+}
+function togglePlay(){
+  if(STATE.playing){stopPlay();return;}
+  if(STATE.idx===STATE.steps.length-1) STATE.idx=0;
+  STATE.playing=true;
+  document.getElementById('play').textContent='❚❚ Pause';
+  const speed=+document.getElementById('speed').value;
+  STATE.timer=setInterval(()=>{
+    if(STATE.idx>=STATE.steps.length-1){stopPlay();return;}
+    go(1);
+  }, speed);
+}
+
+function load(matrix){
+  stopPlay();
+  const built=buildSteps(matrix);
+  STATE.steps=built.steps; STATE.R=built.R; STATE.C=built.C; STATE.idx=0;
+  draw();
+}
+
+/* ---------- Input parsing ---------- */
+function parseInput(txt){
+  const rows=txt.trim().split(/\n+/).map(l=>l.trim()).filter(Boolean)
+    .map(l=>l.split(/[\s,]+/).filter(x=>x!=='').map(Number));
+  if(rows.length===0) throw 'Matrix is empty.';
+  const w=rows[0].length;
+  if(w===0) throw 'First row has no values.';
+  for(const r of rows){
+    if(r.length!==w) throw 'All rows must have the same length.';
+    if(r.some(n=>Number.isNaN(n))) throw 'Only numbers allowed.';
+  }
+  return rows;
+}
+function setText(m){document.getElementById('matinput').value=m.map(r=>r.join(' ')).join('\n');}
+
+/* ---------- Wire up ---------- */
+document.getElementById('play').onclick=togglePlay;
+document.getElementById('step').onclick=()=>{stopPlay();go(1);};
+document.getElementById('back').onclick=()=>{stopPlay();go(-1);};
+document.getElementById('reset').onclick=()=>{stopPlay();STATE.idx=0;draw();};
+document.getElementById('speed').oninput=()=>{if(STATE.playing){stopPlay();togglePlay();}};
+
+document.querySelectorAll('[data-preset]').forEach(b=>{
+  b.onclick=()=>{
+    const key=b.dataset.preset;
+    const m = key==='rand' ? randMatrix() : PRESETS[key];
+    setText(m);
+    document.getElementById('err').textContent='';
+    load(m);
+  };
+});
+document.getElementById('load').onclick=()=>{
+  const err=document.getElementById('err'); err.textContent='';
+  try{ load(parseInput(document.getElementById('matinput').value)); }
+  catch(e){ err.textContent='⚠ '+e; }
+};
+
+// boot
+load(PRESETS.ex1);
+</script>
+</body>
+</html>
