@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>3Sum · Two-Scout Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --anchor:#B5453B;        /* red  – the Anchor (i) */
+    --anchor-fill:#F7E3E0;
+    --poor:#2F6DB5;          /* blue – Poor Scout (left) */
+    --poor-fill:#E3EEFA;
+    --rich:#C67A00;          /* amber – Rich Scout (right) */
+    --rich-fill:#FBEFD6;
+    --zero:#2E7D57;          /* green – jackpot */
+    --zero-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;          /* greyed / skipped */
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  /* Header */
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(28px,5vw,44px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--anchor);}
+  .sub{color:var(--ink-soft);max-width:70ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  /* Stage */
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  /* Array board */
+  .board{padding:30px 22px 12px;}
+  .arr-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .arr{
+    display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+    position:relative;padding-top:34px;
+  }
+  .cell{
+    position:relative;
+    width:56px;height:56px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:19px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell .idx{
+    position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+    font-size:10px;font-weight:500;color:var(--ink-soft);
+  }
+  .cell.anchor{background:var(--anchor-fill);border-color:var(--anchor);color:var(--anchor);transform:translateY(-3px);}
+  .cell.poor{background:var(--poor-fill);border-color:var(--poor);color:var(--poor);}
+  .cell.rich{background:var(--rich-fill);border-color:var(--rich);color:var(--rich);}
+  .cell.zero{background:var(--zero-fill);border-color:var(--zero);color:var(--zero);}
+  .cell.done{opacity:.32;}
+  .cell.skip{opacity:.32;text-decoration:line-through;}
+
+  /* pointer flags above cells */
+  .flag{
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+  }
+  .flag.anchor{background:var(--anchor);color:#fff;}
+  .flag.poor{background:var(--poor);color:#fff;}
+  .flag.rich{background:var(--rich);color:#fff;}
+  .flag.stack{top:-24px;}
+
+  /* Readout */
+  .readout{
+    margin:8px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:112px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.poor{background:var(--poor-fill);color:var(--poor);}
+  .verdict.rich{background:var(--rich-fill);color:var(--rich);}
+  .verdict.zero{background:var(--zero-fill);color:var(--zero);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.anchor{background:var(--anchor-fill);color:var(--anchor);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:15px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  /* Found triplets */
+  .found{
+    padding:14px 18px 22px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .trips{display:flex;gap:9px;flex-wrap:wrap;min-height:34px;}
+  .trip{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    background:var(--zero-fill);border:1.5px solid var(--zero);color:var(--zero);
+    padding:6px 11px;border-radius:9px;
+    animation:pop .35s ease;
+  }
+  .trips .empty{color:var(--ink-soft);font-size:12.5px;font-style:italic;}
+  @keyframes pop{from{transform:scale(.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+  /* Code panel */
+  .code-scroll{max-height:520px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot{background:var(--poor-fill);}
+  pre.code .ln.hot-a{background:var(--anchor-fill);}
+  pre.code .ln.hot-z{background:var(--zero-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  /* Controls */
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  /* preset chips */
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  /* Legend */
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.anchor{background:var(--anchor-fill);border-color:var(--anchor);}
+  .sw.poor{background:var(--poor-fill);border-color:var(--poor);}
+  .sw.rich{background:var(--rich-fill);border-color:var(--rich);}
+  .sw.zero{background:var(--zero-fill);border-color:var(--zero);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{width:46px;height:46px;font-size:16px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Arrays · Two Pointers · LeetCode 15 · Medium</div>
+    <h1>3<span class="n">Sum</span></h1>
+    <p class="sub">Sort the line. Pick an <b>Anchor</b> (<code>i</code>). Send two Scouts walking toward each other —
+    the <b style="color:var(--poor)">Poor Scout</b> (<code>left</code>) and the <b style="color:var(--rich)">Rich Scout</b> (<code>right</code>).
+    Trio too poor? Poor Scout steps right. Too rich? Rich Scout steps left.
+    <b style="color:var(--zero)">Sum = 0</b> is the jackpot. Step through and watch it play out.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n²)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1) extra*</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Sort + Two Pointers</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[-1,0,1,2,-1,-4]</button>
+    <button class="chip" data-preset="1">[0,1,1]</button>
+    <button class="chip" data-preset="2">[0,0,0]</button>
+    <button class="chip" data-preset="3">[-2,0,1,1,2]</button>
+  </div>
+
+  <div class="stage">
+    <!-- Board panel -->
+    <div class="panel">
+      <div class="panel-head"><span>The Line (sorted)</span><span id="dimLabel">n = 6</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">raw: [-1, 0, 1, 2, -1, -4]</div>
+        <div class="arr" id="arr"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found">
+        <div class="found-head">Triplets found</div>
+        <div class="trips" id="trips"><span class="empty">none yet…</span></div>
+      </div>
+    </div>
+
+    <!-- Code panel -->
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw anchor"></i> Anchor <code style="font-family:'JetBrains Mono'">i</code> (fixed value, find 2 to cancel it)</span>
+    <span><i class="sw poor"></i> Poor Scout <code style="font-family:'JetBrains Mono'">left</code></span>
+    <span><i class="sw rich"></i> Rich Scout <code style="font-family:'JetBrains Mono'">right</code></span>
+    <span><i class="sw zero"></i> jackpot — sum = 0</span>
+  </div>
+
+  <p class="foot">
+    * O(1) extra ignoring the output list &amp; sort's stack. Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> List&lt;List&lt;Integer&gt;&gt; <span class="fn">threeSum</span>(<span class="kw">int</span>[] nums) {', id:null},
+  {t:'  List&lt;List&lt;Integer&gt;&gt; result = <span class="kw">new</span> ArrayList&lt;&gt;();', id:null},
+  {t:'  Arrays.sort(nums);                 <span class="cmt">// sort the line</span>', id:'sort'},
+  {t:'', id:null},
+  {t:'  <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; nums.length - 2; i++) {', id:'for'},
+  {t:'    <span class="cmt">// skip duplicate anchor</span>', id:null},
+  {t:'    <span class="kw">if</span> (i &gt; 0 &amp;&amp; nums[i] == nums[i-1]) <span class="kw">continue</span>;', id:'dupI'},
+  {t:'    <span class="cmt">// anchor too rich → impossible from here</span>', id:null},
+  {t:'    <span class="kw">if</span> (nums[i] &gt; 0) <span class="kw">break</span>;', id:'break'},
+  {t:'', id:null},
+  {t:'    <span class="kw">int</span> left = i + 1, right = nums.length - 1;', id:'init'},
+  {t:'    <span class="kw">while</span> (left &lt; right) {', id:'while'},
+  {t:'      <span class="kw">int</span> sum = nums[i] + nums[left] + nums[right];', id:'sum'},
+  {t:'      <span class="kw">if</span> (sum == 0) {', id:'eq'},
+  {t:'        result.add(Arrays.asList(nums[i],nums[left],nums[right]));', id:'add'},
+  {t:'        <span class="kw">while</span>(left&lt;right &amp;&amp; nums[left]==nums[left+1]) left++;', id:'dupL'},
+  {t:'        <span class="kw">while</span>(left&lt;right &amp;&amp; nums[right]==nums[right-1]) right--;', id:'dupR'},
+  {t:'        left++; right--;', id:'moveBoth'},
+  {t:'      } <span class="kw">else if</span> (sum &lt; 0) {', id:'lt'},
+  {t:'        left++;                       <span class="cmt">// need bigger</span>', id:'incL'},
+  {t:'      } <span class="kw">else</span> {', id:'gt'},
+  {t:'        right--;                      <span class="cmt">// need smaller</span>', id:'decR'},
+  {t:'      }', id:null},
+  {t:'    }', id:null},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">return</span> result;', id:null},
+  {t:'}', id:null},
+];
+
+/* ---------- presets ---------- */
+const PRESETS = [
+  [-1,0,1,2,-1,-4],
+  [0,1,1],
+  [0,0,0],
+  [-2,0,1,1,2],
+];
+
+/* ---------- step generator (mirrors the Java) ---------- */
+function buildSteps(raw){
+  const nums = [...raw].sort((a,b)=>a-b);
+  const steps = [];
+  const found = [];
+  const snap = (o)=>steps.push(Object.assign({
+    nums, i:-1,left:-1,right:-1, sum:null,
+    verdict:'', vclass:'info', sumHtml:'', desc:'',
+    line:null, found:found.map(f=>[...f]),
+    doneUpTo:-1, skipI:-1,
+  }, o));
+
+  snap({verdict:'Sorted', vclass:'info',
+    sumHtml:`raw &rarr; <b>[${nums.join(', ')}]</b>`,
+    desc:'Sort first so we can tell which way to move: left = richer, right = poorer.',
+    line:'sort'});
+
+  const n = nums.length;
+  for(let i=0;i<n-2;i++){
+    if(i>0 && nums[i]===nums[i-1]){
+      snap({i, verdict:'Skip anchor', vclass:'anchor',
+        sumHtml:`nums[${i}] == nums[${i-1}] (both <b>${nums[i]}</b>)`,
+        desc:'Same anchor value as before — it would recruit the same scouts and form the same trio. Skip it.',
+        line:'dupI', doneUpTo:i-1, skipI:i});
+      continue;
+    }
+    if(nums[i]>0){
+      snap({i, verdict:'Break', vclass:'rich',
+        sumHtml:`nums[${i}] = <b>${nums[i]}</b> &gt; 0`,
+        desc:'Anchor is already positive, and everyone to the right is even bigger (sorted). No trio can reach 0 from here. Stop.',
+        line:'break', doneUpTo:i-1});
+      break;
+    }
+    let left=i+1, right=n-1;
+    snap({i,left,right, verdict:'New anchor', vclass:'anchor',
+      sumHtml:`anchor nums[${i}] = <b>${nums[i]}</b>`,
+      desc:'Fix this anchor. Poor Scout starts just right of it, Rich Scout at the far end.',
+      line:'init', doneUpTo:i-1});
+
+    while(left<right){
+      const sum = nums[i]+nums[left]+nums[right];
+      const eq = `${nums[i]} <span class="op">+</span> ${nums[left]} <span class="op">+</span> ${nums[right]} <span class="op">=</span> <b>${sum}</b>`;
+      if(sum===0){
+        found.push([nums[i],nums[left],nums[right]]);
+        snap({i,left,right,sum, verdict:'JACKPOT · sum = 0', vclass:'zero',
+          sumHtml:eq, desc:`Perfect balance! Record <b>[${nums[i]}, ${nums[left]}, ${nums[right]}]</b>. Now skip any twins, then move both scouts inward.`,
+          line:'add', doneUpTo:i-1});
+        while(left<right && nums[left]===nums[left+1]) left++;
+        while(left<right && nums[right]===nums[right-1]) right--;
+        left++; right--;
+        if(left<right){
+          snap({i,left,right, verdict:'Move inward', vclass:'info',
+            sumHtml:`skip twins, then left++ &amp; right--`,
+            desc:'Both scouts step past duplicates and move one more inward to hunt the next pair.',
+            line:'moveBoth', doneUpTo:i-1});
+        }
+      } else if(sum<0){
+        snap({i,left,right,sum, verdict:'Too poor · sum &lt; 0', vclass:'poor',
+          sumHtml:eq, desc:'Trio is collectively in debt. Need a bigger sum → Poor Scout steps right toward richer people.',
+          line:'incL', doneUpTo:i-1});
+        left++;
+      } else {
+        snap({i,left,right,sum, verdict:'Too rich · sum &gt; 0', vclass:'rich',
+          sumHtml:eq, desc:'Trio is too wealthy. Need a smaller sum → Rich Scout steps left toward poorer people.',
+          line:'decR', doneUpTo:i-1});
+        right--;
+      }
+    }
+  }
+  snap({verdict:'Done', vclass:'zero',
+    sumHtml: found.length ? `found <b>${found.length}</b> triplet${found.length>1?'s':''}` : 'no triplets sum to 0',
+    desc: found.length ? 'Every distinct triplet summing to zero has been collected.' : 'No three numbers add up to zero for this input.',
+    line:null, doneUpTo:PRESETS.length});
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), tripsEl=$('trips'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const raw = PRESETS[idx];
+  steps = buildSteps(raw);
+  cur=0;
+  const sorted=[...raw].sort((a,b)=>a-b);
+  rawLabel.textContent = `raw: [${raw.join(', ')}]  →  sorted: [${sorted.join(', ')}]`;
+  dimLabel.textContent = `n = ${raw.length}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  // cells
+  arrEl.innerHTML='';
+  s.nums.forEach((v,idx)=>{
+    const c=document.createElement('div');
+    c.className='cell';
+    let flags=[];
+    if(idx<=s.doneUpTo) c.classList.add('done');
+    if(idx===s.skipI) c.classList.add('skip');
+    if(idx===s.i){ c.classList.add(s.sum===0 && idx===s.i ? 'anchor':'anchor'); flags.push(['anchor','i']); }
+    if(idx===s.left){ c.classList.add(s.sum===0?'zero':'poor'); flags.push(['poor','left']); }
+    if(idx===s.right){ c.classList.add(s.sum===0?'zero':'rich'); flags.push(['rich','right']); }
+    c.innerHTML = `<span class="idx">${idx}</span>${v}`;
+    // pointer flags (stack when i sits under left etc. — rare, but keep tidy)
+    flags.forEach((f,fi)=>{
+      const fl=document.createElement('div');
+      fl.className=`flag ${f[0]}${fi>0?' stack':''}`;
+      fl.textContent=f[1];
+      c.appendChild(fl);
+    });
+    arrEl.appendChild(c);
+  });
+  // readout
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  // triplets
+  if(s.found.length===0){
+    tripsEl.innerHTML='<span class="empty">none yet…</span>';
+  } else {
+    tripsEl.innerHTML = s.found.map(f=>`<span class="trip">[${f.join(', ')}]</span>`).join('');
+  }
+  // code highlight
+  let cls='';
+  if(s.vclass==='zero') cls='-z';
+  else if(s.vclass==='anchor'||s.vclass==='rich'&&s.line==='break') cls='-a';
+  renderCode(s.line, s.vclass==='zero'?'-z':(s.vclass==='anchor'?'-a':''));
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
