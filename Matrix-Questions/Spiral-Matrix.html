@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spiral Matrix · Shrinking-Boundary Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E1E9E7;
+    --ink:#132A2A;
+    --ink-soft:#557170;
+    --accent:#0F7C74;
+    --accent-soft:#E1F1EF;
+    --hot:#E86A3A;
+    --hot-soft:#FBE7DD;
+    --bound:#C88A1E;
+    --line:#D5E0DE;
+    --shadow:0 1px 0 rgba(19,42,42,.04), 0 8px 30px -18px rgba(19,42,42,.4);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:linear-gradient(var(--grid) 1px, transparent 1px),linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 64px;}
+  header{margin-bottom:24px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;}
+  h1{font-size:clamp(28px,5vw,44px);font-weight:700;letter-spacing:-.02em;margin:6px 0 8px;line-height:1.05;}
+  h1 .s{color:var(--accent);}
+  .sub{color:var(--ink-soft);max-width:62ch;font-size:15px;}
+  .sub code,.narrate code,.hint code{font-family:"JetBrains Mono",monospace;background:#fff;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12.5px;}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;font-family:"JetBrains Mono",monospace;font-size:12px;}
+  .tag{border:1px solid var(--line);border-radius:999px;padding:3px 11px;background:#fff;color:var(--ink-soft);}
+  .tag b{color:var(--ink);font-weight:700;}
+
+  .stage{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;margin-top:26px;align-items:start;}
+  @media(max-width:820px){.stage{grid-template-columns:1fr;}}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:20px;}
+  .panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.12em;font-family:"JetBrains Mono",monospace;font-weight:600;color:var(--ink-soft);margin:0 0 16px;}
+
+  .board-hold{display:flex;justify-content:center;padding:14px 0 2px;overflow:auto;}
+  .board{display:grid;gap:5px;position:relative;--cell:52px;--gap:5px;}
+  .cell{width:var(--cell);height:var(--cell);display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",monospace;font-weight:600;font-size:16px;border-radius:9px;border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);position:relative;transition:transform .18s ease,box-shadow .18s ease,color .25s ease;}
+  .cell.seen{color:var(--ink);}
+  .cell .ord{position:absolute;top:3px;left:5px;font-size:8.5px;font-weight:700;color:rgba(19,42,42,.4);}
+  .cell.head{transform:translateY(-3px) scale(1.08);box-shadow:0 0 0 3px rgba(232,106,58,.4),0 10px 22px -12px rgba(232,106,58,.7);border-color:var(--hot);color:var(--hot);z-index:4;}
+  .bframe{position:absolute;border:2px dashed var(--bound);border-radius:8px;pointer-events:none;transition:all .22s ease;z-index:3;}
+
+  .phases{display:flex;gap:6px;margin-bottom:16px;}
+  .dirbox{flex:1;border:1px solid var(--line);border-radius:8px;padding:8px 4px;text-align:center;background:#fff;font-size:11px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  .dirbox .a{display:block;font-weight:700;font-size:17px;color:var(--ink);margin-bottom:1px;}
+  .dirbox.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+  .dirbox.active .a{color:var(--accent);}
+
+  .bounds{display:flex;gap:6px;margin-bottom:16px;font-family:"JetBrains Mono",monospace;font-size:11px;}
+  .bchip{flex:1;text-align:center;border:1px solid var(--line);border-radius:7px;padding:6px 2px;background:var(--paper);color:var(--ink-soft);}
+  .bchip b{display:block;color:var(--ink);font-size:15px;}
+
+  .narrate{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-height:64px;font-size:14.5px;color:var(--ink);}
+  .narrate .step-k{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;}
+
+  .outwrap{margin-top:16px;}
+  .outlabel{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px;}
+  .out{display:flex;gap:5px;flex-wrap:wrap;min-height:30px;}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:12.5px;font-weight:600;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:3px 8px;}
+  .chip.last{background:var(--hot);border-color:var(--hot);color:#fff;}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+  button{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:9px 15px;cursor:pointer;transition:all .15s ease;}
+  button:hover:not(:disabled){border-color:var(--accent);color:var(--accent);transform:translateY(-1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+  button.primary:hover:not(:disabled){background:var(--accent);border-color:var(--accent);color:#fff;transform:translateY(-1px);}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px;font-size:12px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:4px;border:1.5px solid;display:inline-block;}
+  .sw.grad{background:linear-gradient(135deg,hsl(174 45% 90%),hsl(174 60% 55%));border-color:var(--line);}
+  .sw.head{background:var(--hot-soft);border-color:var(--hot);}
+  .sw.bound{background:#fff;border-color:var(--bound);border-style:dashed;}
+
+  .setup{margin-top:22px;}
+  .preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  textarea{width:100%;font-family:"JetBrains Mono",monospace;font-size:13px;border:1px solid var(--line);border-radius:9px;padding:11px;resize:vertical;min-height:76px;color:var(--ink);background:var(--paper);}
+  textarea:focus{outline:none;border-color:var(--accent);}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:6px;}
+  .err{color:var(--hot);font-size:12.5px;margin-top:8px;min-height:16px;}
+
+  .code-wrap{margin-top:22px;}
+  pre{margin:0;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 14px;overflow:auto;box-shadow:var(--shadow);}
+  code.java{font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.65;display:block;white-space:pre;}
+  .ln{display:block;padding:0 6px;border-radius:4px;transition:background .3s ease;}
+  .ln.hl{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent);}
+  .kw{color:#9B2D9B;} .cm{color:#7C9391;font-style:italic;} .ty{color:var(--accent);}
+
+  footer{margin-top:34px;text-align:center;color:var(--ink-soft);font-size:12.5px;font-family:"JetBrains Mono",monospace;}
+  footer a{color:var(--accent);text-decoration:none;}
+  @media (prefers-reduced-motion: reduce){*{transition:none !important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Pattern · Matrix / Boundary traversal</div>
+    <h1><span class="s">Spiral</span> Matrix</h1>
+    <p class="sub">LeetCode 54. Return every element in spiral order. Keep four walls — <code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code> — walk along one, then pull that wall inward. Cells tint deeper as they're visited, so the spiral draws itself.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b> O(m·n)</span>
+      <span class="tag"><b>Space</b> O(1) extra</span>
+      <span class="tag"><b>Difficulty</b> Medium</span>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="panel">
+      <h2>The Matrix</h2>
+      <div class="board-hold"><div class="board" id="board"></div></div>
+      <div class="legend">
+        <span><i class="sw grad"></i> visited (deeper = later)</span>
+        <span><i class="sw head"></i> current cell</span>
+        <span><i class="sw bound"></i> active window</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Walkthrough</h2>
+      <div class="phases" id="phases"></div>
+      <div class="bounds" id="bounds"></div>
+      <div class="narrate" id="narrate"><span class="step-k">Ready</span>Press <b>Play</b> or <b>Step</b> to begin.</div>
+      <div class="outwrap">
+        <div class="outlabel">Output so far</div>
+        <div class="out" id="out"></div>
+      </div>
+      <div class="controls">
+        <button id="back">◀ Back</button>
+        <button id="play" class="primary">▶ Play</button>
+        <button id="step">Step ▶</button>
+        <button id="reset">↺ Reset</button>
+        <div class="spacer"></div>
+        <label class="speed">slow<input type="range" id="speed" min="140" max="1000" value="440" step="40" /></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel setup">
+    <h2>Input</h2>
+    <div class="preset-row">
+      <button data-preset="ex1">Example 1 · 3×3</button>
+      <button data-preset="ex2">Example 2 · 3×4</button>
+      <button data-preset="tall">Tall 5×2</button>
+      <button data-preset="rand">Randomize</button>
+    </div>
+    <textarea id="matinput" spellcheck="false">1 2 3
+4 5 6
+7 8 9</textarea>
+    <div class="hint">Any <code>m×n</code> · one row per line · values separated by spaces or commas.</div>
+    <div class="err" id="err"></div>
+    <div class="controls"><button class="primary" id="load">Load matrix</button></div>
+  </div>
+
+  <div class="panel code-wrap">
+    <h2>Java · O(1) extra space — four shrinking boundaries</h2>
+    <pre><code class="java" id="code"></code></pre>
+  </div>
+
+  <footer>Built for <a href="https://leetcode.com/problems/spiral-matrix/" target="_blank" rel="noopener">DSA-PatternWise</a> · step through, don't memorize.</footer>
+</div>
+
+<script>
+/* ---------- Java for line highlighting ---------- */
+const JAVA=[
+  {t:'public List<Integer> spiralOrder(int[][] m){', p:[]},
+  {t:'    List<Integer> res = new ArrayList<>();', p:[]},
+  {t:'    int top = 0, bottom = m.length - 1;', p:[]},
+  {t:'    int left = 0, right = m[0].length - 1;', p:[]},
+  {t:'', p:[]},
+  {t:'    while (top <= bottom && left <= right){', p:[0,1,2,3]},
+  {t:'      // → across the top row', p:[0]},
+  {t:'      for (int c=left; c<=right; c++) res.add(m[top][c]);', p:[0]},
+  {t:'      top++;', p:[0]},
+  {t:'      // ↓ down the right column', p:[1]},
+  {t:'      for (int r=top; r<=bottom; r++) res.add(m[r][right]);', p:[1]},
+  {t:'      right--;', p:[1]},
+  {t:'      // ← back across the bottom row', p:[2]},
+  {t:'      if (top <= bottom)', p:[2]},
+  {t:'        for (int c=right; c>=left; c--) res.add(m[bottom][c]);', p:[2]},
+  {t:'      bottom--;', p:[2]},
+  {t:'      // ↑ up the left column', p:[3]},
+  {t:'      if (left <= right)', p:[3]},
+  {t:'        for (int r=bottom; r>=top; r--) res.add(m[r][left]);', p:[3]},
+  {t:'      left++;', p:[3]},
+  {t:'    }', p:[]},
+  {t:'    return res;', p:[]},
+  {t:'}', p:[]},
+];
+function renderCode(active){
+  document.getElementById('code').innerHTML=JAVA.map(row=>{
+    let s=row.t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/(\/\/[^<]*)/g,'<span class="cm">$1</span>')
+      .replace(/\b(public|int|for|while|if|return|new)\b/g,'<span class="kw">$1</span>')
+      .replace(/\b(List|Integer|ArrayList)\b/g,'<span class="ty">$1</span>');
+    const hl=(active!=null&&row.p.includes(active))?' hl':'';
+    return `<span class="ln${hl}">${s||'&nbsp;'}</span>`;
+  }).join('');
+}
+
+/* ---------- Presets ---------- */
+const PRESETS={
+  ex1:[[1,2,3],[4,5,6],[7,8,9]],
+  ex2:[[1,2,3,4],[5,6,7,8],[9,10,11,12]],
+  tall:[[1,2],[3,4],[5,6],[7,8],[9,10]],
+};
+function randMatrix(){
+  const R=2+Math.floor(Math.random()*4),C=2+Math.floor(Math.random()*4);
+  let k=1,g=[];for(let i=0;i<R;i++){let r=[];for(let j=0;j<C;j++)r.push(k++);g.push(r);}return g;
+}
+
+/* ---------- Step builder: shrinking boundaries ---------- */
+const DIRS=['→','↓','←','↑'];
+function buildSteps(input){
+  const R=input.length,C=input[0].length;
+  const steps=[];
+  const order=Array.from({length:R},()=>Array(C).fill(-1));
+  const out=[];
+  let top=0,bottom=R-1,left=0,right=C-1,count=0;
+
+  const snap=o=>steps.push({
+    order:order.map(r=>r.slice()), out:out.slice(),
+    head:o.head||null, dir:o.dir, bounds:{top,bottom,left,right},
+    key:o.key, text:o.text,
+  });
+
+  snap({dir:null,key:'Start',text:`An <code>${R}×${C}</code> matrix. Four walls start at the edges. Walk a wall, add each cell, then move that wall one step in.`});
+
+  while(top<=bottom&&left<=right){
+    for(let c=left;c<=right;c++){order[top][c]=count++;out.push(input[top][c]);
+      snap({dir:0,head:[top,c],key:'Go right → row '+top,text:`Add <code>m[${top}][${c}] = ${input[top][c]}</code>.`});}
+    top++;
+    for(let r=top;r<=bottom;r++){order[r][right]=count++;out.push(input[r][right]);
+      snap({dir:1,head:[r,right],key:'Go down ↓ col '+right,text:`Add <code>m[${r}][${right}] = ${input[r][right]}</code>.`});}
+    right--;
+    if(top<=bottom){
+      for(let c=right;c>=left;c--){order[bottom][c]=count++;out.push(input[bottom][c]);
+        snap({dir:2,head:[bottom,c],key:'Go left ← row '+bottom,text:`Add <code>m[${bottom}][${c}] = ${input[bottom][c]}</code>.`});}
+      bottom--;
+    }
+    if(left<=right){
+      for(let r=bottom;r>=top;r--){order[r][left]=count++;out.push(input[r][left]);
+        snap({dir:3,head:[r,left],key:'Go up ↑ col '+left,text:`Add <code>m[${r}][${left}] = ${input[r][left]}</code>.`});}
+      left++;
+    }
+  }
+  snap({dir:null,head:null,key:'Done',text:`Walls crossed — every cell collected in spiral order. ${count} elements. ✅`});
+  return {steps,R,C};
+}
+
+/* ---------- Renderer ---------- */
+let STATE={steps:[],idx:0,R:0,C:0,cell:52,gap:5,timer:null,playing:false,total:0};
+
+function tint(ord,total){
+  if(ord<0) return '#ffffff';
+  const t=total<=1?0:ord/(total-1);
+  const light=90-t*36;            // 90% → 54%
+  const sat=42+t*22;              // 42% → 64%
+  return `hsl(174 ${sat.toFixed(0)}% ${light.toFixed(0)}%)`;
+}
+
+function draw(){
+  const s=STATE.steps[STATE.idx],R=STATE.R,C=STATE.C;
+  const cell=(C>6||R>6)?40:52,gap=5;
+  STATE.cell=cell;STATE.gap=gap;
+  const board=document.getElementById('board');
+  board.style.setProperty('--cell',cell+'px');
+  board.style.gridTemplateColumns=`repeat(${C}, ${cell}px)`;
+
+  const headKey=s.head?s.head[0]+','+s.head[1]:'';
+  let html='';
+  for(let i=0;i<R;i++)for(let j=0;j<C;j++){
+    const ord=s.order[i][j];
+    const cls=['cell']; if(ord>=0)cls.push('seen'); if(i+','+j===headKey)cls.push('head');
+    const bg=(i+','+j===headKey)?'':`background:${tint(ord,STATE.total)};`;
+    const ob=ord>=0?`<span class="ord">${ord+1}</span>`:'';
+    html+=`<div class="${cls.join(' ')}" style="${bg}">${ob}${STATE.input[i][j]}</div>`;
+  }
+  // boundary frame
+  const b=s.bounds;
+  if(b && b.top<=b.bottom && b.left<=b.right && s.dir!==null){
+    const x=b.left*(cell+gap), y=b.top*(cell+gap);
+    const w=(b.right-b.left+1)*(cell+gap)-gap, h=(b.bottom-b.top+1)*(cell+gap)-gap;
+    html+=`<div class="bframe" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;"></div>`;
+  }
+  board.innerHTML=html;
+
+  document.getElementById('phases').innerHTML=DIRS.map((a,k)=>{
+    const c='dirbox'+(k===s.dir?' active':'');
+    return `<div class="${c}"><span class="a">${a}</span>${['right','down','left','up'][k]}</div>`;
+  }).join('');
+
+  document.getElementById('bounds').innerHTML=
+    [['top',s.bounds.top],['bottom',s.bounds.bottom],['left',s.bounds.left],['right',s.bounds.right]]
+    .map(([k,v])=>`<div class="bchip">${k}<b>${v}</b></div>`).join('');
+
+  document.getElementById('narrate').innerHTML=`<span class="step-k">${s.key} · ${STATE.idx+1}/${STATE.steps.length}</span>${s.text}`;
+
+  document.getElementById('out').innerHTML=s.out.map((v,i)=>
+    `<span class="chip${i===s.out.length-1?' last':''}">${v}</span>`).join('') || '<span style="color:var(--ink-soft);font-size:13px">—</span>';
+
+  renderCode(s.dir);
+  document.getElementById('back').disabled=STATE.idx===0;
+  document.getElementById('step').disabled=STATE.idx===STATE.steps.length-1;
+}
+
+function go(d){STATE.idx=Math.max(0,Math.min(STATE.steps.length-1,STATE.idx+d));draw();if(STATE.idx===STATE.steps.length-1)stopPlay();}
+function stopPlay(){STATE.playing=false;clearInterval(STATE.timer);document.getElementById('play').textContent='▶ Play';}
+function togglePlay(){
+  if(STATE.playing){stopPlay();return;}
+  if(STATE.idx===STATE.steps.length-1)STATE.idx=0;
+  STATE.playing=true;document.getElementById('play').textContent='❚❚ Pause';
+  STATE.timer=setInterval(()=>{if(STATE.idx>=STATE.steps.length-1){stopPlay();return;}go(1);},+document.getElementById('speed').value);
+}
+function load(m){stopPlay();const b=buildSteps(m);STATE.steps=b.steps;STATE.R=b.R;STATE.C=b.C;STATE.input=m;STATE.total=b.R*b.C;STATE.idx=0;draw();}
+
+/* ---------- Input ---------- */
+function parseInput(txt){
+  const rows=txt.trim().split(/\n+/).map(l=>l.trim()).filter(Boolean)
+    .map(l=>l.split(/[\s,]+/).filter(x=>x!=='').map(Number));
+  if(rows.length===0) throw 'Matrix is empty.';
+  const w=rows[0].length; if(w===0) throw 'First row has no values.';
+  for(const r of rows){
+    if(r.length!==w) throw 'All rows must have the same length.';
+    if(r.some(x=>Number.isNaN(x))) throw 'Only numbers allowed.';
+  }
+  return rows;
+}
+function setText(m){document.getElementById('matinput').value=m.map(r=>r.join(' ')).join('\n');}
+
+/* ---------- Wire up ---------- */
+document.getElementById('play').onclick=togglePlay;
+document.getElementById('step').onclick=()=>{stopPlay();go(1);};
+document.getElementById('back').onclick=()=>{stopPlay();go(-1);};
+document.getElementById('reset').onclick=()=>{stopPlay();STATE.idx=0;draw();};
+document.getElementById('speed').oninput=()=>{if(STATE.playing){stopPlay();togglePlay();}};
+document.querySelectorAll('[data-preset]').forEach(b=>{
+  b.onclick=()=>{const k=b.dataset.preset;const m=k==='rand'?randMatrix():PRESETS[k];setText(m);document.getElementById('err').textContent='';load(m);};
+});
+document.getElementById('load').onclick=()=>{
+  const err=document.getElementById('err');err.textContent='';
+  try{load(parseInput(document.getElementById('matinput').value));}catch(e){err.textContent='⚠ '+e;}
+};
+load(PRESETS.ex1);
+</script>
+</body>
+</html>
