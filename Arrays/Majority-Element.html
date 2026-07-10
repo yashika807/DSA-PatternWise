@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Majority Vote II · Boyer–Moore Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#10131c;
+    --ink-2:#171b27;
+    --panel:#1c2130;
+    --panel-2:#232838;
+    --line:#2e3446;
+    --paper:#eceae1;
+    --muted:#8a91a6;
+    --muted-2:#5d6478;
+    --c1:#f0b429;      /* candidate 1 — amber */
+    --c1-dim:#5a4718;
+    --c2:#4cc9c0;      /* candidate 2 — teal  */
+    --c2-dim:#1e4a48;
+    --strike:#ef5a5a;  /* cancellation — red  */
+    --strike-dim:#4a2323;
+    --phase2:#a78bfa;  /* verify phase accent */
+    --ok:#5fd08a;
+    --radius:14px;
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --disp:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #1b2135 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 10%, #201a2e 0%, transparent 55%),
+      var(--ink);
+    color:var(--paper);
+    font-family:var(--disp);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:920px;margin:0 auto}
+
+  /* ---- header ---- */
+  header{margin-bottom:22px}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 8px
+  }
+  h1{
+    font-size:clamp(26px,5vw,40px);font-weight:700;margin:0;
+    letter-spacing:-.02em;line-height:1.05
+  }
+  h1 .amp{color:var(--muted-2);font-weight:400}
+  .sub{color:var(--muted);margin:8px 0 0;font-size:15px;max-width:60ch}
+  .sub code{
+    font-family:var(--mono);color:var(--paper);
+    background:var(--panel-2);padding:1px 6px;border-radius:5px;font-size:13px
+  }
+
+  /* ---- controls ---- */
+  .controls{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px;margin:22px 0;
+  }
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .row + .row{margin-top:12px}
+  label.fld{font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);margin-right:2px}
+  input[type=text]{
+    flex:1;min-width:180px;font-family:var(--mono);font-size:15px;
+    background:var(--ink-2);color:var(--paper);border:1px solid var(--line);
+    border-radius:9px;padding:10px 12px;outline:none
+  }
+  input[type=text]:focus{border-color:var(--c2)}
+  button{
+    font-family:var(--disp);font-weight:600;font-size:14px;cursor:pointer;
+    background:var(--panel-2);color:var(--paper);border:1px solid var(--line);
+    border-radius:9px;padding:9px 15px;transition:transform .08s ease,background .15s ease,border-color .15s
+  }
+  button:hover:not(:disabled){background:#2b3143;border-color:#3b435c}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+  button:disabled{opacity:.38;cursor:not-allowed}
+  button.go{background:var(--c2);color:#06201e;border-color:var(--c2)}
+  button.go:hover:not(:disabled){background:#5fdcd2}
+  button.load{background:var(--paper);color:#191919;border-color:var(--paper)}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+  .chip{
+    font-family:var(--mono);font-size:12px;padding:6px 10px;border-radius:20px;
+    background:transparent;border:1px dashed var(--line);color:var(--muted)
+  }
+  .chip:hover{color:var(--paper);border-color:var(--muted)}
+  .speed{display:flex;align-items:center;gap:8px;margin-left:auto;
+    font-family:var(--mono);font-size:12px;color:var(--muted)}
+  input[type=range]{accent-color:var(--c2);width:110px}
+  .err{color:var(--strike);font-family:var(--mono);font-size:13px;margin-top:10px;min-height:0}
+
+  /* ---- stage ---- */
+  .stage{
+    background:linear-gradient(180deg,var(--panel) 0%,var(--ink-2) 100%);
+    border:1px solid var(--line);border-radius:var(--radius);padding:20px 20px 24px;
+  }
+  .phasebar{display:flex;align-items:center;justify-content:space-between;
+    gap:12px;margin-bottom:20px;flex-wrap:wrap}
+  .badge{
+    font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    padding:6px 12px;border-radius:20px;border:1px solid var(--line);color:var(--muted)
+  }
+  .badge.p1{color:var(--c1);border-color:var(--c1-dim);background:rgba(240,180,41,.07)}
+  .badge.p2{color:var(--phase2);border-color:#3c2f63;background:rgba(167,139,250,.08)}
+  .badge.done{color:var(--ok);border-color:#254a34;background:rgba(95,208,138,.08)}
+  .stepcount{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .stepcount b{color:var(--paper)}
+
+  /* array */
+  .arraywrap{overflow-x:auto;padding-bottom:4px}
+  .array{display:flex;gap:8px;min-width:min-content;padding:6px 2px 2px}
+  .cell{
+    position:relative;flex:0 0 auto;width:52px;height:56px;border-radius:10px;
+    background:var(--panel-2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:20px;font-weight:600;
+    transition:transform .18s ease,border-color .18s,background .18s,box-shadow .18s
+  }
+  .cell .idx{position:absolute;top:-18px;left:0;right:0;text-align:center;
+    font-size:10px;color:var(--muted-2);font-family:var(--mono);font-weight:400}
+  .cell.cur{transform:translateY(-6px) scale(1.06);
+    box-shadow:0 8px 22px rgba(0,0,0,.4)}
+  .cell.done1{background:var(--c1-dim);border-color:var(--c1);color:#fff2d3}
+  .cell.done2{background:var(--c2-dim);border-color:var(--c2);color:#d6fbf7}
+  .cell.cur.tone1{border-color:var(--c1);box-shadow:0 8px 22px rgba(240,180,41,.28)}
+  .cell.cur.tone2{border-color:var(--c2);box-shadow:0 8px 22px rgba(76,201,192,.28)}
+  .cell.cur.tonex{border-color:var(--strike);box-shadow:0 8px 22px rgba(239,90,90,.28)}
+  .caret{color:var(--paper);text-align:center;font-family:var(--mono);
+    font-size:12px;height:16px;margin-top:2px;transition:all .18s}
+
+  /* candidate cards */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:26px 0 20px}
+  .card{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:12px;
+    padding:14px 15px;transition:border-color .2s,box-shadow .2s,transform .18s
+  }
+  .card.slot1{--accent:var(--c1);--accentdim:var(--c1-dim)}
+  .card.slot2{--accent:var(--c2);--accentdim:var(--c2-dim)}
+  .card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset,0 6px 20px rgba(0,0,0,.3)}
+  .card.hit{animation:pop .32s ease}
+  .card.strike{animation:shake .34s ease}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.05)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  .card h3{margin:0 0 10px;font-size:12px;font-family:var(--mono);
+    letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:8px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+  .elrow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+  .ellabel{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .elval{font-family:var(--mono);font-size:30px;font-weight:600;color:var(--accent)}
+  .elval.empty{color:var(--muted-2)}
+  .votes{display:flex;align-items:center;gap:10px}
+  .bars{display:flex;gap:3px;flex:1;height:20px;align-items:flex-end}
+  .tick{flex:1;max-width:16px;height:100%;border-radius:3px;background:var(--accentdim);
+    opacity:.35;transition:opacity .2s,background .2s}
+  .tick.on{opacity:1;background:var(--accent)}
+  .votecount{font-family:var(--mono);font-size:22px;font-weight:600;min-width:2ch;text-align:right}
+
+  /* narration */
+  .narrate{
+    display:flex;gap:12px;align-items:flex-start;
+    background:var(--ink-2);border:1px solid var(--line);border-left:3px solid var(--muted-2);
+    border-radius:10px;padding:13px 15px;font-size:15px;min-height:52px;
+    transition:border-left-color .2s
+  }
+  .narrate.tone1{border-left-color:var(--c1)}
+  .narrate.tone2{border-left-color:var(--c2)}
+  .narrate.tonex{border-left-color:var(--strike)}
+  .narrate.tonep2{border-left-color:var(--phase2)}
+  .narrate.toneok{border-left-color:var(--ok)}
+  .narrate .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;padding:3px 8px;border-radius:6px;white-space:nowrap;
+    background:var(--panel-2);color:var(--muted)}
+  .narrate.tone1 .tag{color:var(--c1)}
+  .narrate.tone2 .tag{color:var(--c2)}
+  .narrate.tonex .tag{color:var(--strike)}
+  .narrate.tonep2 .tag{color:var(--phase2)}
+  .narrate.toneok .tag{color:var(--ok)}
+  .narrate .txt{flex:1}
+  .narrate code{font-family:var(--mono);background:var(--panel-2);
+    padding:1px 6px;border-radius:5px;font-size:13px}
+
+  /* result */
+  .result{margin-top:18px;padding-top:18px;border-top:1px dashed var(--line);
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:24px}
+  .result .rl{font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted)}
+  .pill{font-family:var(--mono);font-weight:600;font-size:17px;padding:6px 16px;
+    border-radius:20px;background:rgba(95,208,138,.1);border:1px solid #2c5540;color:var(--ok);
+    animation:pop .32s ease}
+  .pill.empty{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+  .thresh{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .thresh b{color:var(--paper)}
+
+  footer{margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--muted-2);
+    text-align:center;line-height:1.7}
+  footer kbd{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;
+    padding:1px 6px;color:var(--muted);font-size:11px}
+
+  @media (max-width:560px){
+    body{padding:20px 14px 50px}
+    .cards{grid-template-columns:1fr}
+    .presets,.speed{margin-left:0}
+    .cell{width:44px;height:50px;font-size:17px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Boyer–Moore Voting · n/3 variant</p>
+    <h1>Majority Vote II</h1>
+    <p class="sub">Find every element that appears <strong>more than <code>⌊n/3⌋</code></strong> times. At most two can exist — so we run two elimination races at once, then recount honestly to confirm the winners.</p>
+  </header>
+
+  <div class="controls">
+    <div class="row">
+      <label class="fld" for="arr">Array</label>
+      <input id="arr" type="text" value="1,1,1,3,3,2,2,2" spellcheck="false" autocomplete="off">
+      <button class="load" id="load">Load</button>
+    </div>
+    <div class="row">
+      <span class="fld">Presets</span>
+      <div class="presets">
+        <button class="chip" data-arr="1,1,1,3,3,2,2,2">two winners</button>
+        <button class="chip" data-arr="3,2,3">classic</button>
+        <button class="chip" data-arr="1">single</button>
+        <button class="chip" data-arr="2,2,1,1,1,2,2">one winner</button>
+        <button class="chip" data-arr="1,2,3,4,5,6">no winner</button>
+        <button class="chip" data-arr="4,4,4,4,5,6,7,8,4">decoys</button>
+      </div>
+    </div>
+    <div class="row">
+      <button id="back">◀ Back</button>
+      <button id="next">Step ▶</button>
+      <button class="go" id="play">▶ Play</button>
+      <button id="reset">↻ Reset</button>
+      <div class="speed">
+        <span>slow</span>
+        <input id="speed" type="range" min="180" max="1400" value="750" step="20">
+        <span>fast</span>
+      </div>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="stage">
+    <div class="phasebar">
+      <span class="badge" id="phaseBadge">Ready</span>
+      <span class="stepcount" id="stepCount">step 0 / 0</span>
+    </div>
+
+    <div class="arraywrap">
+      <div class="array" id="array"></div>
+    </div>
+
+    <div class="cards">
+      <div class="card slot1" id="card1">
+        <h3><span class="dot"></span>Candidate&nbsp;1</h3>
+        <div class="elrow">
+          <span class="ellabel">el1 =</span>
+          <span class="elval empty" id="el1">—</span>
+        </div>
+        <div class="votes">
+          <div class="bars" id="bars1"></div>
+          <span class="votecount" id="cnt1">0</span>
+        </div>
+      </div>
+      <div class="card slot2" id="card2">
+        <h3><span class="dot"></span>Candidate&nbsp;2</h3>
+        <div class="elrow">
+          <span class="ellabel">el2 =</span>
+          <span class="elval empty" id="el2">—</span>
+        </div>
+        <div class="votes">
+          <div class="bars" id="bars2"></div>
+          <span class="votecount" id="cnt2">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="narrate" id="narrate">
+      <span class="tag" id="narrTag">start</span>
+      <span class="txt" id="narrTxt">Load an array and step through, or hit Play. Each step maps exactly to one iteration of the algorithm.</span>
+    </div>
+
+    <div class="result" id="result">
+      <span class="rl">Result</span>
+      <span class="pill empty" id="resultPills">pending — finish both phases</span>
+      <span class="thresh" id="thresh"></span>
+    </div>
+  </div>
+
+  <footer>
+    Phase 1 finds candidates by cancellation · Phase 2 recounts to reject false positives<br>
+    <kbd>←</kbd> back &nbsp; <kbd>→</kbd> step &nbsp; <kbd>space</kbd> play/pause &nbsp; <kbd>R</kbd> reset
+  </footer>
+</div>
+
+<script>
+"use strict";
+const MIN = Symbol("MIN"); // sentinel for "empty slot"
+const $ = id => document.getElementById(id);
+
+let frames = [];
+let pos = 0;
+let arr = [];
+let playing = false;
+let timer = null;
+
+/* ---- build the full frame list for an array ---- */
+function computeFrames(nums){
+  const f = [];
+  let el1 = MIN, el2 = MIN, cnt1 = 0, cnt2 = 0;
+
+  const snap = (o) => f.push(Object.assign({
+    phase:1, i:-1, el1, cnt1, el2, cnt2,
+    action:"", tag:"", tone:"", desc:"", hit1:false, hit2:false,
+    processed:0, matched1:false, matched2:false, result:null
+  }, o));
+
+  // initial frame
+  snap({ i:-1, tag:"start", tone:"",
+    desc:`Two empty slots, both counts at 0. Array has <code>n = ${nums.length}</code> element${nums.length===1?"":"s"}.` });
+
+  // ---- phase 1: voting ----
+  for(let i=0;i<nums.length;i++){
+    const x = nums[i];
+    let action="", tag="", tone="", desc="", hit1=false, hit2=false;
+    if(cnt1===0 && x!==el2){
+      cnt1=1; el1=x; action="claim1"; tag="claim ①"; tone="tone1"; hit1=true;
+      desc=`Slot 1 is empty and <code>${x}</code> ≠ el2 → <code>${x}</code> claims slot 1, <code>cnt1 = 1</code>.`;
+    } else if(cnt2===0 && x!==el1){
+      cnt2=1; el2=x; action="claim2"; tag="claim ②"; tone="tone2"; hit2=true;
+      desc=`Slot 2 is empty and <code>${x}</code> ≠ el1 → <code>${x}</code> claims slot 2, <code>cnt2 = 1</code>.`;
+    } else if(el1===x){
+      cnt1++; action="vote1"; tag="vote ①"; tone="tone1"; hit1=true;
+      desc=`<code>${x}</code> matches el1 → <code>cnt1 = ${cnt1}</code>.`;
+    } else if(el2===x){
+      cnt2++; action="vote2"; tag="vote ②"; tone="tone2"; hit2=true;
+      desc=`<code>${x}</code> matches el2 → <code>cnt2 = ${cnt2}</code>.`;
+    } else {
+      cnt1--; cnt2--; action="cancel"; tag="cancel"; tone="tonex"; hit1=true; hit2=true;
+      desc=`<code>${x}</code> matches neither candidate → both counts drop: <code>cnt1 = ${cnt1}</code>, <code>cnt2 = ${cnt2}</code>.`;
+    }
+    snap({ phase:1, i, action, tag, tone, desc, hit1, hit2, processed:i+1 });
+  }
+
+  // remember phase-1 candidates
+  const cand1 = el1, cand2 = el2;
+
+  // ---- phase 2: verify ----
+  cnt1 = 0; cnt2 = 0;
+  // transition frame
+  snap({ phase:2, i:-1, el1:cand1, cnt1:0, el2:cand2, cnt2:0,
+    action:"resetcount", tag:"verify", tone:"tonep2", processed:0,
+    desc:`Phase 1 done. Candidates: el1 = <code>${fmt(cand1)}</code>, el2 = <code>${fmt(cand2)}</code>. Reset counts and recount honestly — Phase 1's numbers were surviving votes, not real frequencies.` });
+
+  for(let i=0;i<nums.length;i++){
+    const x = nums[i];
+    const m1 = (x===cand1), m2 = (x===cand2);
+    if(m1) cnt1++;
+    if(m2) cnt2++;
+    let desc = `<code>${x}</code>`;
+    if(m1 && m2) desc += ` matches both → cnt1 = ${cnt1}, cnt2 = ${cnt2}.`;
+    else if(m1) desc += ` matches el1 → real <code>cnt1 = ${cnt1}</code>.`;
+    else if(m2) desc += ` matches el2 → real <code>cnt2 = ${cnt2}</code>.`;
+    else desc += ` matches neither candidate → skip.`;
+    snap({ phase:2, i, el1:cand1, cnt1, el2:cand2, cnt2,
+      action:"count", tag:"count", tone:"tonep2", processed:i+1,
+      matched1:m1, matched2:m2, hit1:m1, hit2:m2, desc });
+  }
+
+  // ---- result ----
+  const n = nums.length;
+  const mini = Math.floor(n/3) + 1;
+  const res = [];
+  if(cnt1 >= mini) res.push(cand1);
+  if(cnt2 >= mini && cand2 !== cand1) res.push(cand2);
+  const parts = [];
+  if(cnt1 >= mini) parts.push(`el1 = <code>${fmt(cand1)}</code> (count ${cnt1} ≥ ${mini}) ✓`);
+  else parts.push(`el1 rejected (count ${cnt1} < ${mini})`);
+  if(cand2 !== cand1){
+    if(cnt2 >= mini) parts.push(`el2 = <code>${fmt(cand2)}</code> (count ${cnt2} ≥ ${mini}) ✓`);
+    else parts.push(`el2 rejected (count ${cnt2} < ${mini})`);
+  }
+  snap({ phase:"done", i:-1, el1:cand1, cnt1, el2:cand2, cnt2,
+    action:"result", tag:"done", tone:"toneok", processed:n,
+    desc:`Threshold is <code>⌊n/3⌋ + 1 = ${mini}</code>. ${parts.join(" · ")}`,
+    result: res, mini });
+
+  return f;
+}
+
+function fmt(v){ return v===MIN ? "—" : v; }
+
+/* ---- render a frame ---- */
+function render(){
+  const fr = frames[pos];
+  if(!fr) return;
+
+  // phase badge
+  const pb = $("phaseBadge");
+  pb.className = "badge";
+  if(fr.phase===1){ pb.classList.add("p1"); pb.textContent = "Phase 1 · Voting"; }
+  else if(fr.phase===2){ pb.classList.add("p2"); pb.textContent = "Phase 2 · Verify"; }
+  else { pb.classList.add("done"); pb.textContent = "Complete"; }
+
+  $("stepCount").innerHTML = `step <b>${pos}</b> / ${frames.length-1}`;
+
+  // array cells
+  const cont = $("array");
+  cont.innerHTML = "";
+  arr.forEach((v,idx)=>{
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    const isCur = (idx===fr.i);
+    // phase-2 colouring of already-counted matches
+    if(fr.phase===2 || fr.phase==="done"){
+      if(idx < fr.processed || (fr.phase==="done")){
+        if(v===fr.el1 && fr.el1!==MIN) cell.classList.add("done1");
+        else if(v===fr.el2 && fr.el2!==MIN) cell.classList.add("done2");
+      }
+    }
+    if(isCur){
+      cell.classList.add("cur");
+      if(fr.tone==="tone1") cell.classList.add("tone1");
+      else if(fr.tone==="tone2") cell.classList.add("tone2");
+      else if(fr.tone==="tonex") cell.classList.add("tonex");
+    }
+    cell.innerHTML = `<span class="idx">${idx}</span>${v}`;
+    cont.appendChild(cell);
+  });
+
+  // candidate cards
+  updateCard(1, fr.el1, fr.cnt1, fr.hit1, fr.action, fr);
+  updateCard(2, fr.el2, fr.cnt2, fr.hit2, fr.action, fr);
+
+  // narration
+  const nar = $("narrate");
+  nar.className = "narrate" + (fr.tone ? " "+fr.tone : "");
+  $("narrTag").textContent = fr.tag || "";
+  $("narrTxt").innerHTML = fr.desc || "";
+
+  // result
+  const rp = $("resultPills");
+  const rl = document.querySelector(".result .rl");
+  if(fr.phase==="done"){
+    rl.textContent = "Winners";
+    if(fr.result.length){
+      rp.className = "";
+      rp.style.background="none"; rp.style.border="none"; rp.style.padding="0";
+      rp.innerHTML = fr.result.map(v=>`<span class="pill">${v}</span>`).join(" ");
+    } else {
+      rp.className = "pill empty";
+      rp.style.cssText="";
+      rp.textContent = "∅  no element exceeds the threshold";
+    }
+    $("thresh").innerHTML = `threshold&nbsp;=&nbsp;<b>${fr.mini}</b>`;
+  } else {
+    rl.textContent = "Result";
+    rp.className = "pill empty"; rp.style.cssText="";
+    rp.textContent = "pending — finish both phases";
+    $("thresh").innerHTML = "";
+  }
+
+  // buttons
+  $("back").disabled = (pos===0);
+  $("next").disabled = (pos===frames.length-1);
+}
+
+function updateCard(n, el, cnt, hit, action, fr){
+  const card = $("card"+n);
+  const elEl = $("el"+n);
+  const cntEl = $("cnt"+n);
+  const bars = $("bars"+n);
+
+  elEl.textContent = fmt(el);
+  elEl.classList.toggle("empty", el===MIN);
+  cntEl.textContent = cnt;
+
+  // vote bars (cap display at 10 ticks, but keep the number exact)
+  const maxTicks = 10;
+  bars.innerHTML = "";
+  const shown = Math.min(Math.max(cnt,0), maxTicks);
+  for(let k=0;k<maxTicks;k++){
+    const t=document.createElement("span");
+    t.className="tick"+(k<shown?" on":"");
+    bars.appendChild(t);
+  }
+
+  // active highlight when this candidate matches current element / is being touched
+  const active = (el!==MIN) && (
+    (fr.phase===1 && hit) ||
+    (fr.phase===2 && ((n===1&&fr.matched1)||(n===2&&fr.matched2)))
+  );
+  card.classList.toggle("active", active);
+
+  // pop / shake animation
+  card.classList.remove("hit","strike");
+  void card.offsetWidth; // reflow to restart animation
+  if(hit){
+    if(action==="cancel") card.classList.add("strike");
+    else card.classList.add("hit");
+  }
+}
+
+/* ---- navigation ---- */
+function goNext(){ if(pos<frames.length-1){ pos++; render(); } else stop(); }
+function goBack(){ if(pos>0){ pos--; render(); } }
+function reset(){ stop(); pos=0; render(); }
+
+function play(){
+  if(pos>=frames.length-1) pos=0;
+  playing=true; $("play").textContent="⏸ Pause";
+  tick();
+}
+function tick(){
+  if(!playing) return;
+  if(pos>=frames.length-1){ stop(); return; }
+  pos++; render();
+  timer=setTimeout(tick, 1580 - Number($("speed").value));
+}
+function stop(){ playing=false; $("play").textContent="▶ Play"; clearTimeout(timer); }
+function togglePlay(){ playing?stop():play(); }
+
+/* ---- load / parse ---- */
+function loadArray(str){
+  stop();
+  const raw = str.split(/[,\s]+/).map(s=>s.trim()).filter(s=>s.length);
+  const nums = [];
+  for(const r of raw){
+    const v = Number(r);
+    if(!Number.isFinite(v) || !Number.isInteger(v)){
+      $("err").textContent = `"${r}" is not an integer — use whole numbers only.`;
+      return false;
+    }
+    nums.push(v);
+  }
+  if(nums.length===0){ $("err").textContent="Enter at least one integer."; return false; }
+  if(nums.length>60){ $("err").textContent="Keep it under 60 elements for a readable trace."; return false; }
+  $("err").textContent="";
+  arr = nums;
+  frames = computeFrames(nums);
+  pos = 0;
+  render();
+  return true;
+}
+
+/* ---- wiring ---- */
+$("load").addEventListener("click", ()=>loadArray($("arr").value));
+$("arr").addEventListener("keydown", e=>{ if(e.key==="Enter") loadArray($("arr").value); });
+$("next").addEventListener("click", ()=>{ stop(); goNext(); });
+$("back").addEventListener("click", ()=>{ stop(); goBack(); });
+$("play").addEventListener("click", togglePlay);
+$("reset").addEventListener("click", reset);
+document.querySelectorAll(".chip").forEach(c=>{
+  c.addEventListener("click", ()=>{ $("arr").value=c.dataset.arr; loadArray(c.dataset.arr); });
+});
+document.addEventListener("keydown", e=>{
+  if(e.target.tagName==="INPUT") return;
+  if(e.key==="ArrowRight"){ stop(); goNext(); e.preventDefault(); }
+  else if(e.key==="ArrowLeft"){ stop(); goBack(); e.preventDefault(); }
+  else if(e.key===" "){ togglePlay(); e.preventDefault(); }
+  else if(e.key.toLowerCase()==="r"){ reset(); }
+});
+
+// boot
+loadArray($("arr").value);
+</script>
+</body>
+</html>
