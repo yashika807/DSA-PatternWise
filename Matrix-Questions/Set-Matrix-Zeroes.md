@@ -4,7 +4,9 @@
 **Pattern:** Matrix / In-place bookkeeping  
 **Link:** https://leetcode.com/problems/set-matrix-zeroes/
 
-> 🔗 **[Open the interactive visualizer →](./set-matrix-zeroes.html)** — step through the O(1) approach and watch row 0 / column 0 turn into a marker rail.
+> 🔗 **[Open the interactive visualizer →]
+
+> (https://yashika807.github.io/DSA-PatternWise/Matrix-Questions/Set-Matrix-Zeroes.html)
 
 ---
 
