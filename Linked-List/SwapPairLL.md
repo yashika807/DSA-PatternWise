@@ -2,8 +2,10 @@
 
 > **Pattern:** Linked List → *Reverse in groups of `k`* (yahan `k = 2`)
 > **Difficulty:** Medium · **Platform:** [LeetCode 24](https://leetcode.com/problems/swap-nodes-in-pairs/)
-> **Visualizer:** [`swapPairs-visualizer.html`]
-(https://yashika807.github.io/DSA-PatternWise/Linked-List/SwapPairLL.html) — step-by-step debugger with live pointers (`←` `→` `Space` `R`)
+ **Visualizer:**
+
+(https://yashika807.github.io/DSA-PatternWise/Linked-List/SwapPairLL.html) —
+step-by-step debugger with live pointers (`←` `→` `Space` `R`)
 
 ---
 
