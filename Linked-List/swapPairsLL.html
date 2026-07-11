@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Swap Pairs — Step Debugger | DSA-PatternWise</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#0e1119;
+    --bg2:#141926;
+    --panel:#171d2b;
+    --panel2:#1c2434;
+    --line:#26304a;
+    --ink:#e8edf7;
+    --ink-dim:#93a0bd;
+    --ink-faint:#5f6e8f;
+
+    --node:#212b41;
+    --node-edge:#33415f;
+
+    /* pointer identity colors */
+    --c-left:#2dd4bf;
+    --c-right:#a78bfa;
+    --c-prevleft:#fb7185;
+    --c-res:#4ade80;
+    --c-next:#fbbf24;
+    --c-head:#7c8aa8;
+    --amber:#f5b544;
+
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --disp:'Space Grotesk',system-ui,sans-serif;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;background:
+     radial-gradient(1100px 600px at 82% -8%, #1a2338 0%, transparent 55%),
+     radial-gradient(900px 520px at -6% 108%, #16202f 0%, transparent 50%),
+     var(--bg);
+    color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:18px}
+  .brand{display:flex;flex-direction:column;gap:6px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);font-weight:600}
+  h1{font-size:30px;line-height:1.02;margin:0;font-weight:700;letter-spacing:-.01em}
+  h1 .k{color:var(--ink-dim);font-weight:600}
+  .sub{font-family:var(--mono);font-size:12.5px;color:var(--ink-dim)}
+  .repo{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);border:1px solid var(--line);
+     padding:8px 12px;border-radius:9px;background:var(--panel);white-space:nowrap}
+  .repo b{color:var(--c-res)}
+
+  /* controls */
+  .controls{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:6px 0 20px;
+     background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+  .group{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);margin-right:2px}
+  .preset{font-family:var(--mono);font-size:12px;color:var(--ink-dim);background:var(--panel2);
+     border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;transition:.15s;font-weight:500}
+  .preset:hover{border-color:var(--c-left);color:var(--ink)}
+  .preset.active{background:rgba(45,212,191,.13);border-color:var(--c-left);color:var(--c-left)}
+  input#custom{font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--bg2);
+     border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:150px}
+  input#custom:focus{outline:none;border-color:var(--c-left)}
+  .mini{font-family:var(--mono);font-size:11.5px;background:var(--amber);color:#20160a;border:none;
+     border-radius:8px;padding:7px 11px;cursor:pointer;font-weight:700}
+  .mini:hover{filter:brightness(1.07)}
+  .spacer{flex:1 1 auto}
+
+  .layout{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+  @media(max-width:930px){.layout{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .card .hd{display:flex;align-items:center;gap:9px;padding:11px 16px;border-bottom:1px solid var(--line);
+     font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px rgba(245,181,68,.15)}
+
+  /* ---- list stage ---- */
+  .stage{padding:24px 18px;min-height:230px;display:flex;flex-direction:column;justify-content:center;gap:22px;overflow-x:auto}
+  .chain{display:flex;align-items:flex-start;gap:2px;flex-wrap:nowrap;min-width:max-content}
+  .chain.detached{opacity:.96}
+  .chain-tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+     color:var(--c-next);border:1px dashed var(--c-next);border-radius:6px;padding:3px 7px;margin:22px 10px 0 0;align-self:flex-start;white-space:nowrap}
+
+  .cell{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:58px}
+  .badges{display:flex;flex-direction:column;gap:3px;align-items:center;min-height:40px;justify-content:flex-end}
+  .badge{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.03em;
+     padding:2px 6px;border-radius:5px;line-height:1.35;white-space:nowrap;position:relative}
+  .badge::after{content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);
+     border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor}
+  .badge.left{color:var(--c-left);background:rgba(45,212,191,.14);border:1px solid var(--c-left)}
+  .badge.right{color:var(--c-right);background:rgba(167,139,250,.14);border:1px solid var(--c-right)}
+  .badge.prevleft{color:var(--c-prevleft);background:rgba(251,113,133,.13);border:1px solid var(--c-prevleft)}
+  .badge.res{color:var(--c-res);background:rgba(74,222,128,.13);border:1px solid var(--c-res)}
+  .badge.next{color:var(--c-next);background:rgba(251,191,36,.13);border:1px solid var(--c-next)}
+  .badge.head{color:var(--c-head);background:rgba(124,138,168,.13);border:1px solid var(--c-head)}
+
+  .nodebox{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+     font-family:var(--mono);font-weight:700;font-size:17px;background:var(--node);
+     border:1.5px solid var(--node-edge);color:var(--ink);transition:.2s}
+  .nodebox.grp{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,181,68,.16);background:#2a2410;color:#ffe0a3}
+  .arrow{font-family:var(--mono);color:var(--ink-faint);font-size:16px;margin-top:38px;padding:0 3px}
+  .nullcap{font-family:var(--mono);color:var(--ink-faint);font-size:12px;margin-top:36px;
+     border:1px dashed var(--line);border-radius:6px;padding:4px 7px}
+
+  /* ---- state panel ---- */
+  .state{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .var{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);
+     border-radius:10px;padding:9px 11px}
+  .swatch{width:11px;height:11px;border-radius:3px;flex:none}
+  .vname{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-dim)}
+  .vval{font-family:var(--mono);font-size:13px;font-weight:700;margin-left:auto;color:var(--ink)}
+  .vval.null{color:var(--ink-faint);font-weight:500}
+
+  /* ---- narration ---- */
+  .narr{padding:15px 16px 17px;border-top:1px solid var(--line)}
+  .step-title{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--amber);
+     letter-spacing:.02em;margin-bottom:7px;display:flex;align-items:center;gap:8px}
+  .step-title .num{background:var(--amber);color:#20160a;border-radius:5px;padding:1px 7px;font-size:11px}
+  .narr p{margin:0;font-size:14px;line-height:1.62;color:var(--ink);font-weight:500}
+  .narr code{font-family:var(--mono);font-size:12.5px;background:var(--bg2);border:1px solid var(--line);
+     padding:1px 5px;border-radius:5px;color:var(--c-left)}
+
+  /* ---- code panel ---- */
+  .code-card{margin-top:18px}
+  pre.code{margin:0;padding:16px 6px 16px 0;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.66}
+  .cl{display:flex;padding:0 14px}
+  .cl .ln{width:30px;text-align:right;color:var(--ink-faint);user-select:none;padding-right:14px;flex:none}
+  .cl .ct{white-space:pre;color:#c6d0e6}
+  .cl.hl{background:linear-gradient(90deg,rgba(245,181,68,.16),rgba(245,181,68,.03));border-left:2px solid var(--amber);margin-left:-2px}
+  .kw{color:#7cc4ff}.ty{color:#5ee6c8}.fn{color:#c3a0ff}.nm{color:#ffd479}.cm{color:#5f6e8f;font-style:italic}
+
+  /* ---- footer nav ---- */
+  .nav{position:sticky;bottom:14px;margin-top:20px;display:flex;align-items:center;gap:12px;
+     background:rgba(20,25,38,.92);backdrop-filter:blur(9px);border:1px solid var(--line);
+     border-radius:14px;padding:11px 15px}
+  .btn{font-family:var(--mono);font-size:13px;font-weight:600;background:var(--panel2);color:var(--ink);
+     border:1px solid var(--line);border-radius:10px;padding:9px 16px;cursor:pointer;transition:.15s}
+  .btn:hover:not(:disabled){border-color:var(--c-left);color:var(--c-left)}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .btn.primary{background:var(--amber);color:#20160a;border-color:var(--amber);font-weight:700}
+  .btn.primary:hover{filter:brightness(1.07);color:#20160a}
+  .prog{flex:1;height:6px;background:var(--bg2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--c-left),var(--amber));border-radius:99px;transition:.25s}
+  .count{font-family:var(--mono);font-size:12px;color:var(--ink-dim);white-space:nowrap}
+  .keys{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);white-space:nowrap}
+  @media(max-width:600px){.keys{display:none}}
+  kbd{font-family:var(--mono);background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;
+     border-radius:5px;padding:1px 5px;font-size:10px;color:var(--ink-dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <span class="eyebrow">Linked List · Pattern Debugger</span>
+      <h1>Swap Pairs <span class="k">/ reverse-in-groups (size=2)</span></h1>
+      <span class="sub">LeetCode 24 · yeh wahi generalized template hai jo size badalne pe LC 25 ban jaata hai</span>
+    </div>
+    <span class="repo">yashika807 / <b>DSA-PatternWise</b></span>
+  </header>
+
+  <div class="controls">
+    <div class="group">
+      <span class="lbl">Input</span>
+      <button class="preset active" data-vals="1,2,3,4,5,6,7">1‑7</button>
+      <button class="preset" data-vals="1,2,3,4">1‑4</button>
+      <button class="preset" data-vals="1,2,3">1‑3 (odd)</button>
+      <button class="preset" data-vals="1,2">1‑2</button>
+      <button class="preset" data-vals="1">single</button>
+    </div>
+    <div class="group">
+      <span class="lbl">Custom</span>
+      <input id="custom" placeholder="e.g. 8,3,5,9,1" />
+      <button class="mini" id="run">Run</button>
+    </div>
+    <span class="spacer"></span>
+    <span class="keys"><kbd>←</kbd><kbd>→</kbd> step · <kbd>Space</kbd> next · <kbd>R</kbd> reset</span>
+  </div>
+
+  <div class="layout">
+    <!-- LEFT: list + narration -->
+    <div class="card">
+      <div class="hd"><span class="dot"></span> List State &nbsp;·&nbsp; live pointers</div>
+      <div class="stage" id="stage"></div>
+      <div class="narr">
+        <div class="step-title"><span class="num" id="stepnum">0</span><span id="steptitle">—</span></div>
+        <p id="narration">—</p>
+      </div>
+    </div>
+
+    <!-- RIGHT: variables -->
+    <div class="card">
+      <div class="hd"><span class="dot" style="background:var(--c-left);box-shadow:0 0 0 3px rgba(45,212,191,.15)"></span> Variables</div>
+      <div class="state" id="statepanel"></div>
+      <div class="narr" style="padding-top:13px">
+        <div class="step-title" style="color:var(--ink-dim)">legend</div>
+        <p style="font-family:var(--mono);font-size:11.5px;line-height:1.85;color:var(--ink-dim)">
+          Amber node = abhi jis group ko reverse kar rahe hain.<br>
+          Alag (dashed) chain = us pal list temporarily <code>next</code> me detach hai — reattach hone waali hai.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CODE -->
+  <div class="card code-card">
+    <div class="hd"><span class="dot" style="background:var(--c-right);box-shadow:0 0 0 3px rgba(167,139,250,.15)"></span> Solution.java &nbsp;·&nbsp; highlighted line = current step</div>
+    <pre class="code" id="code"></pre>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="btn" id="prev">‹ Prev</button>
+    <button class="btn primary" id="next">Next ›</button>
+    <button class="btn" id="reset">Reset</button>
+    <div class="prog"><i id="progbar"></i></div>
+    <span class="count" id="count">0 / 0</span>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   The EXACT algorithm, instrumented. We run your swapPairs
+   (size=2) and reverse() and record a snapshot at each step,
+   so every pointer badge is guaranteed to match real behaviour.
+   ============================================================ */
+
+// code listing shown on the right — line numbers here MUST match the `lines` used below
+const CODE = [
+ [1 ,'<span class="ty">public</span> ListNode <span class="fn">swapPairs</span>(ListNode head) {'],
+ [2 ,'    <span class="ty">int</span> size = <span class="nm">2</span>;'],
+ [3 ,'    <span class="kw">if</span> (head == <span class="kw">null</span>) <span class="kw">return</span> head;'],
+ [4 ,'    ListNode left = head;'],
+ [5 ,'    ListNode prevleft = <span class="kw">null</span>;'],
+ [6 ,'    ListNode res = <span class="kw">null</span>;'],
+ [7 ,'    ListNode right;'],
+ [8 ,'    <span class="kw">while</span> (<span class="kw">true</span>) {'],
+ [9 ,'        right = left;'],
+ [10,'        <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; size - <span class="nm">1</span>; i++) {'],
+ [11,'            <span class="kw">if</span> (right == <span class="kw">null</span>) <span class="kw">break</span>;'],
+ [12,'            right = right.next;'],
+ [13,'        }'],
+ [14,'        <span class="kw">if</span> (right != <span class="kw">null</span>) {'],
+ [15,'            ListNode next = right.next;'],
+ [16,'            <span class="fn">reverse</span>(left, size);'],
+ [17,'            <span class="kw">if</span> (prevleft != <span class="kw">null</span>) {'],
+ [18,'                prevleft.next = right;'],
+ [19,'            } <span class="kw">else</span> {'],
+ [20,'                res = right;'],
+ [21,'            }'],
+ [22,'            left.next = next;'],
+ [23,'            prevleft = left;'],
+ [24,'            left = next;'],
+ [25,'        } <span class="kw">else</span> {'],
+ [26,'            <span class="kw">if</span> (prevleft != <span class="kw">null</span>) {'],
+ [27,'                prevleft.next = left;'],
+ [28,'            } <span class="kw">else</span> {'],
+ [29,'                res = left;'],
+ [30,'            }'],
+ [31,'            <span class="kw">break</span>;'],
+ [32,'        }'],
+ [33,'    }'],
+ [34,'    <span class="kw">return</span> res;'],
+ [35,'}'],
+ [36,''],
+ [37,'<span class="kw">private</span> <span class="ty">void</span> <span class="fn">reverse</span>(ListNode head, <span class="ty">int</span> size) {'],
+ [38,'    ListNode prev = <span class="kw">null</span>;'],
+ [39,'    ListNode curr = head;'],
+ [40,'    <span class="kw">for</span> (<span class="ty">int</span> i = <span class="nm">0</span>; i &lt; size &amp;&amp; curr != <span class="kw">null</span>; i++) {'],
+ [41,'        ListNode nextNode = curr.next;'],
+ [42,'        curr.next = prev;'],
+ [43,'        prev = curr;'],
+ [44,'        curr = nextNode;'],
+ [45,'    }'],
+ [46,'}'],
+];
+
+function simulate(vals){
+  const nodes = vals.map((v,i)=>({id:i, val:v, next: (i<vals.length-1? i+1 : null)}));
+  const N = nodes.length;
+  const get = id => id==null ? null : nodes[id];
+  const V   = id => id==null ? null : nodes[id].val;   // value for narration
+  const steps = [];
+
+  let head = N>0 ? 0 : null;
+  let left=null, prevleft=null, res=null, right=null, nxt=null;
+  let grp = [];  // node ids currently forming the "active group" (for amber highlight)
+
+  function snap(lines, title, narr){
+    const links = {}; nodes.forEach(n => links[n.id] = n.next);
+    steps.push({
+      lines:[...lines], title, narr,
+      links,
+      ptr:{ head, left, prevleft, res, right, next: nxt },
+      grp:[...grp]
+    });
+  }
+
+  const size = 2;
+  snap([4,5,6], 'Setup',
+    `left = head = node <b>${V(head)}</b>. prevleft aur res abhi <code>null</code>. Har 2-node group ko palatna hai. size=2 fix hai isliye yeh swap-pairs hai.`);
+
+  if(head==null){ snap([3],'Empty list','head null tha — seedha return.'); return {steps, vals}; }
+  left = head; prevleft = null; res = null;
+
+  while(true){
+    grp = [];
+    right = left;
+    snap([9], 'right = left',
+      `right ko left (node <b>${V(left)}</b>) pe rakha. Ab ise <code>size-1 = 1</code> step aage bhejenge — check karne ke liye ki poora group bana ya nahi.`);
+
+    for(let i=0;i<size-1;i++){ if(right==null) break; right = get(right).next; }
+
+    if(right!=null){
+      snap([10,11,12], 'for-loop: right aage badha',
+        `right ab node <b>${V(right)}</b> pe hai. Matlab <code>left..right</code> = node ${V(left)} & ${V(right)} — poora 2-node group mil gaya. ✅`);
+
+      grp = [left, right];
+      nxt = get(right).next;
+      snap([14,15], 'Group full → next save',
+        `next = right.next = <b>${nxt==null?'null':'node '+V(nxt)}</b>. Yeh group ke baad wala hissa hai; abhi isse chhod ke group palatenge, baad me reattach karenge.`);
+
+      // reverse(left, size) — in-place
+      snap([16], 'reverse(left, size) call',
+        `Ab node ${V(left)} se ${size} nodes ko in-place reverse karte hain. Andar prev/curr chalega.`);
+
+      let prev=null, cur=left, cnt=0;
+      while(cnt<size && cur!=null){ let nn=get(cur).next; get(cur).next=prev; prev=cur; cur=nn; cnt++; }
+
+      snap([40,41,42,43,44], 'reverse ho gaya',
+        `Group palat gaya: <b>${V(right)} → ${V(left)}</b>. Dhyaan do — ${V(left)}.next abhi <code>null</code> hai, isliye baaki list ${nxt==null?'(kuch nahi bacha)':'(node '+V(nxt)+' se aage)'} filhaal <b>detach</b> ho gayi. Wo <code>next</code> me safe hai.`);
+
+      if(prevleft!=null){
+        get(prevleft).next = right;
+        snap([17,18], 'prevleft.next = right',
+          `Pichhle group ki tail (node <b>${V(prevleft)}</b>) ko is naye group ke head (node <b>${V(right)}</b>) se jod diya. Aage se chain fir se jud rahi hai.`);
+      } else {
+        res = right;
+        snap([19,20], 'res = right  (pehla group)',
+          `Yeh sabse pehla group tha, isliye <b>res = right = node ${V(right)}</b>. Yahi final answer ka permanent head banega.`);
+      }
+
+      get(left).next = nxt;
+      snap([22], 'left.next = next',
+        `Group ki nayi tail (node <b>${V(left)}</b>) ko aage wale part <b>${nxt==null?'null':'node '+V(nxt)}</b> se jod diya. List dobara poori jud gayi. ✅`);
+
+      prevleft = left;
+      snap([23], 'prevleft = left',
+        `prevleft ab node <b>${V(left)}</b> = is group ki tail. Agla group iske aage attach hoga.`);
+
+      grp = [];
+      left = nxt;
+      snap([24], 'left = next',
+        left==null
+          ? `left = <code>null</code>. Agli iteration me group nahi milega → loop khatam hoga.`
+          : `left = node <b>${V(left)}</b>. Agle group se shuruaat.`);
+
+    } else {
+      snap([10,11,12], 'for-loop: right = null',
+        `right <code>null</code> ho gaya — matlab poora 2-node group nahi bana (0 ya 1 node bacha). Else branch me jaayenge, swap nahi hoga.`);
+
+      if(prevleft!=null){
+        get(prevleft).next = left;
+        snap([26,27], 'else: bacha node reattach',
+          left==null
+            ? `Koi node nahi bacha. prevleft.next waisa hi rehne diya. Even-length list clean khatam.`
+            : `Odd length → akela node <b>${V(left)}</b> bacha. Use jaisa hai waisa prevleft (node <b>${V(prevleft)}</b>) ke aage jod diya — <b>swap nahi</b> hota single node ka.`);
+      } else {
+        res = left;
+        snap([28,29], 'else: res = left',
+          `Shuru me hi 0/1 node tha, koi swap nahi. res = left = ${left==null?'null':'node '+V(left)}.`);
+      }
+      snap([31], 'break', `Loop tod diya. Ab <code>return res</code> hoga.`);
+      break;
+    }
+  }
+
+  // final chain string
+  const order=[]; let cur=res, g=0; while(cur!=null && g<200){ order.push(V(cur)); cur=get(cur).next; g++; }
+  snap([34], 'return res',
+    `Ho gaya! Final list: <b>${order.join(' → ')} → null</b> ✅`);
+
+  return {steps, vals};
+}
+
+/* ---------------- rendering ---------------- */
+
+let SIM=null, idx=0;
+
+function computeChains(links, ptr){
+  const ids = Object.keys(links).map(Number);
+  const indeg = {}; ids.forEach(i=>indeg[i]=0);
+  ids.forEach(i=>{ const nx=links[i]; if(nx!=null) indeg[nx]=(indeg[nx]||0)+1; });
+  let heads = ids.filter(i=>indeg[i]===0);
+  const eff = ptr.res!=null ? ptr.res : ptr.head;
+  heads.sort((a,b)=> a===eff ? -1 : b===eff ? 1 : a-b);
+  const seenAll=new Set();
+  const chains=[];
+  heads.forEach(h=>{
+    const c=[]; let cur=h; const local=new Set();
+    while(cur!=null && !local.has(cur)){ c.push(cur); local.add(cur); seenAll.add(cur); cur=links[cur]; }
+    chains.push(c);
+  });
+  // any leftover (cycle) — unlikely
+  ids.forEach(i=>{ if(!seenAll.has(i)) chains.push([i]); });
+  return chains;
+}
+
+const PTR_ORDER=['res','head','prevleft','left','right','next'];
+const PTR_CLASS={res:'res',head:'head',prevleft:'prevleft',left:'left',right:'right',next:'next'};
+
+function render(){
+  const st = SIM.steps[idx];
+  const stage = document.getElementById('stage');
+  stage.innerHTML='';
+
+  const chains = computeChains(st.links, st.ptr);
+  const nodeVal = id => SIM.byId[id].val;
+  const grpSet = new Set(st.grp);
+
+  // which pointers sit on each node
+  const ptrsOn = {};
+  PTR_ORDER.forEach(p=>{ const id=st.ptr[p]; if(id!=null){ (ptrsOn[id]=ptrsOn[id]||[]).push(p); } });
+
+  chains.forEach((chain, ci)=>{
+    const row=document.createElement('div');
+    row.className='chain'+(ci>0?' detached':'');
+    if(ci>0){
+      const tag=document.createElement('div');
+      tag.className='chain-tag';
+      tag.textContent='detached';
+      row.appendChild(tag);
+    }
+    chain.forEach((id,pos)=>{
+      const cell=document.createElement('div'); cell.className='cell';
+      const badges=document.createElement('div'); badges.className='badges';
+      (ptrsOn[id]||[]).forEach(p=>{
+        const b=document.createElement('span'); b.className='badge '+PTR_CLASS[p]; b.textContent=p; badges.appendChild(b);
+      });
+      cell.appendChild(badges);
+      const box=document.createElement('div');
+      box.className='nodebox'+(grpSet.has(id)?' grp':'');
+      box.textContent=nodeVal(id);
+      cell.appendChild(box);
+      row.appendChild(cell);
+
+      const arrow=document.createElement('div'); arrow.className='arrow';
+      arrow.textContent='→';
+      row.appendChild(arrow);
+    });
+    const cap=document.createElement('div'); cap.className='nullcap'; cap.textContent='null';
+    row.appendChild(cap);
+    stage.appendChild(row);
+  });
+
+  // state panel
+  const sp=document.getElementById('statepanel'); sp.innerHTML='';
+  const varColor={left:'--c-left',right:'--c-right',prevleft:'--c-prevleft',res:'--c-res',next:'--c-next',head:'--c-head'};
+  ['left','right','prevleft','res','next','head'].forEach(v=>{
+    const id=st.ptr[v];
+    const val = id==null ? 'null' : String(SIM.byId[id].val);
+    const el=document.createElement('div'); el.className='var';
+    el.innerHTML=`<span class="swatch" style="background:var(${varColor[v]})"></span>
+      <span class="vname">${v}</span>
+      <span class="vval ${id==null?'null':''}">${val}</span>`;
+    sp.appendChild(el);
+  });
+
+  // narration
+  document.getElementById('stepnum').textContent=idx;
+  document.getElementById('steptitle').textContent=st.title;
+  document.getElementById('narration').innerHTML=st.narr;
+
+  // code highlight
+  const hl=new Set(st.lines);
+  document.querySelectorAll('.cl').forEach(cl=>{
+    const n=+cl.dataset.line;
+    cl.classList.toggle('hl', hl.has(n));
+  });
+  const firstHl=[...hl][0];
+  if(firstHl){ const t=document.querySelector('.cl[data-line="'+firstHl+'"]'); if(t) t.scrollIntoView({block:'nearest'}); }
+
+  // nav
+  const total=SIM.steps.length;
+  document.getElementById('count').textContent=`${idx+1} / ${total}`;
+  document.getElementById('progbar').style.width=((idx)/(total-1)*100)+'%';
+  document.getElementById('prev').disabled = idx===0;
+  document.getElementById('next').disabled = idx===total-1;
+}
+
+function buildCode(){
+  const pre=document.getElementById('code'); pre.innerHTML='';
+  CODE.forEach(([n,html])=>{
+    const div=document.createElement('div'); div.className='cl'; div.dataset.line=n;
+    div.innerHTML=`<span class="ln">${n}</span><span class="ct">${html||' '}</span>`;
+    pre.appendChild(div);
+  });
+}
+
+function load(vals){
+  const sim=simulate(vals);
+  sim.byId={}; sim.vals.forEach((v,i)=>sim.byId[i]={val:v});
+  SIM=sim; idx=0; render();
+}
+
+/* ---------------- controls ---------------- */
+document.getElementById('next').onclick=()=>{ if(idx<SIM.steps.length-1){idx++;render();} };
+document.getElementById('prev').onclick=()=>{ if(idx>0){idx--;render();} };
+document.getElementById('reset').onclick=()=>{ idx=0; render(); };
+
+document.querySelectorAll('.preset').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.preset').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    load(b.dataset.vals.split(',').map(Number));
+  };
+});
+function runCustom(){
+  const raw=document.getElementById('custom').value.trim();
+  if(!raw) return;
+  const vals=raw.split(/[\s,]+/).map(Number).filter(x=>!Number.isNaN(x));
+  if(!vals.length) return;
+  document.querySelectorAll('.preset').forEach(x=>x.classList.remove('active'));
+  load(vals);
+}
+document.getElementById('run').onclick=runCustom;
+document.getElementById('custom').addEventListener('keydown',e=>{ if(e.key==='Enter') runCustom(); });
+
+document.addEventListener('keydown',e=>{
+  if(e.target.id==='custom') return;
+  if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); if(idx<SIM.steps.length-1){idx++;render();} }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); if(idx>0){idx--;render();} }
+  else if(e.key==='r'||e.key==='R'){ idx=0; render(); }
+});
+
+buildCode();
+load([1,2,3,4,5,6,7]);
+</script>
+</body>
+</html>
