@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Longest Substring Without Repeating Characters · Sliding Window Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --left:#2F6DB5;
+    --left-fill:#E3EEFA;
+    --right:#C67A00;
+    --right-fill:#FBEFD6;
+    --window:#7C5CBF;
+    --window-fill:#EFE9FA;
+    --best:#2E7D57;
+    --best-fill:#E4F1E9;
+    --bad:#B5453B;
+    --bad-fill:#F7E3E0;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --accent:#7C5CBF;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(22px,4.6vw,36px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--left);}
+  .sub{color:var(--ink-soft);max-width:70ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:34px 22px 12px;min-height:100px;}
+  .arr-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .arr{
+    display:flex;gap:6px;justify-content:center;flex-wrap:wrap;
+    position:relative;padding-top:34px;
+  }
+  .cell{
+    position:relative;
+    width:40px;height:46px;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:17px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell .idx{
+    position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+    font-size:9px;font-weight:500;color:var(--ink-soft);
+  }
+  .cell.inwin{background:var(--window-fill);border-color:var(--window);}
+  .cell.left-edge{border-color:var(--left);color:var(--left);}
+  .cell.right-edge{border-color:var(--right);color:var(--right);transform:translateY(-3px);}
+  .cell.dupe{background:var(--bad-fill);border-color:var(--bad);color:var(--bad);}
+  .cell.best{box-shadow:inset 0 -4px 0 var(--best);}
+  .cell.exited{opacity:.32;}
+  .cell.unvisited{opacity:.55;}
+  .empty-note{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink-soft);font-style:italic;text-align:center;}
+
+  .flag{
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:9px;font-weight:700;
+    padding:2px 6px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+  }
+  .flag.left{background:var(--left);color:#fff;}
+  .flag.right{background:var(--right);color:#fff;}
+  .flag.stack{top:-22px;}
+
+  .readout{
+    margin:8px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:82px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.left{background:var(--left-fill);color:var(--left);}
+  .verdict.right{background:var(--right-fill);color:var(--right);}
+  .verdict.best{background:var(--best-fill);color:var(--best);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.bad{background:var(--bad-fill);color:var(--bad);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .found{
+    padding:14px 18px 18px;border-top:1px solid var(--line);margin-top:6px;
+    display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .best-box{
+    font-family:"JetBrains Mono",monospace;font-size:20px;font-weight:700;
+    background:var(--best-fill);border:1.5px solid var(--best);color:var(--best);
+    padding:8px 14px;border-radius:10px;display:inline-block;
+  }
+  .freqmap{display:flex;gap:8px;flex-wrap:wrap;min-height:38px;}
+  .freq-chip{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    background:var(--window-fill);border:1.5px solid var(--window);color:var(--window);
+    padding:6px 10px;border-radius:8px;
+  }
+  .freq-chip .empty{color:var(--ink-soft);font-weight:400;font-style:italic;}
+
+  .code-scroll{max-height:520px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-l{background:var(--left-fill);}
+  pre.code .ln.hot-r{background:var(--right-fill);}
+  pre.code .ln.hot-b{background:var(--best-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#6a4aa8;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.left{background:var(--left-fill);border-color:var(--left);}
+  .sw.right{background:var(--right-fill);border-color:var(--right);}
+  .sw.window{background:var(--window-fill);border-color:var(--window);}
+  .sw.best{background:var(--best-fill);border-color:var(--best);}
+  .sw.bad{background:var(--bad-fill);border-color:var(--bad);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{width:34px;height:38px;font-size:14px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Sliding Window · No-duplicate Set · LeetCode 3 · Medium</div>
+    <h1>Longest Substring <span class="n">Without Repeating Characters</span></h1>
+    <p class="sub">A VIP room allows one guest per name. Grow the window from the
+    <b style="color:var(--right)">right edge</b> while the new guest is new. The moment someone
+    <b style="color:var(--bad)">already inside</b> tries to enter again, eject guests from the
+    <b style="color:var(--left)">left edge</b> until the earlier copy is gone. Track the
+    <b style="color:var(--best)">largest room size seen so far</b>.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(min(n, charset))</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Sliding Window + Set</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">"abcabcbb"</button>
+    <button class="chip" data-preset="1">"bbbbb"</button>
+    <button class="chip" data-preset="2">"pwwkew"</button>
+    <button class="chip" data-preset="3">"" (empty)</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>The String</span><span id="dimLabel">n = 8</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">s: "abcabcbb"</div>
+        <div class="arr" id="arr"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found">
+        <div>
+          <div class="found-head">Longest so far</div>
+          <span class="best-box" id="bestBox">—</span>
+        </div>
+        <div style="flex:1;min-width:180px;">
+          <div class="found-head">Guests in the room (set)</div>
+          <div class="freqmap" id="freqMap"><span class="empty">empty…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw left"></i> left edge — ejecting</span>
+    <span><i class="sw right"></i> right edge — new guest</span>
+    <span><i class="sw window"></i> inside window</span>
+    <span><i class="sw bad"></i> duplicate detected</span>
+    <span><i class="sw best"></i> longest window recorded here</span>
+  </div>
+
+  <p class="foot">
+    Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="kw">int</span> <span class="fn">lengthOfLongestSubstring</span>(String s) {', id:null},
+  {t:'  Set&lt;Character&gt; window = <span class="kw">new</span> HashSet&lt;&gt;();', id:'init'},
+  {t:'  <span class="kw">int</span> left = 0, maxLen = 0;', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">for</span> (<span class="kw">int</span> right = 0; right &lt; s.length(); right++) {', id:'for'},
+  {t:'    <span class="kw">char</span> c = s.charAt(right);', id:null},
+  {t:'', id:null},
+  {t:'    <span class="kw">while</span> (window.contains(c)) {', id:'while'},
+  {t:'      window.remove(s.charAt(left));', id:'shrink'},
+  {t:'      left++;', id:'moveLeft'},
+  {t:'    }', id:null},
+  {t:'', id:null},
+  {t:'    window.add(c);              <span class="cmt">// grow</span>', id:'grow'},
+  {t:'    maxLen = Math.max(maxLen, right - left + 1);', id:'record'},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">return</span> maxLen;', id:'return'},
+  {t:'}', id:null},
+];
+
+/* ---------- presets ---------- */
+const PRESETS = [
+  'abcabcbb',
+  'bbbbb',
+  'pwwkew',
+  '',
+];
+
+/* ---------- step generator (mirrors the Java) ---------- */
+function buildSteps(str){
+  const n = str.length;
+  const steps = [];
+  const snap = (o)=>steps.push(Object.assign({
+    str, left:-1, right:-1, set:[], maxLen:0,
+    verdict:'', vclass:'info', sumHtml:'', desc:'',
+    line:null, bestS:-1, bestE:-1, dupIdx:-1,
+  }, o));
+
+  let left=0, maxLen=0, bestS=-1, bestE=-1;
+  const setArr = [];
+  const has = c => setArr.includes(c);
+
+  if(n===0){
+    snap({left:-1,right:-1,set:[],maxLen:0,verdict:'Done', vclass:'best',
+      sumHtml:'return <b>0</b>', desc:'Empty string — koi character hi nahi, maxLen 0.', line:'return'});
+    return steps;
+  }
+
+  snap({left:0, right:-1, set:[...setArr], maxLen, verdict:'Ready', vclass:'info',
+    sumHtml:'room khaali hai', desc:'Window khaali hai. Right edge se guests andar bhejna shuru karenge.',
+    line:'init'});
+
+  for(let right=0; right<n; right++){
+    const c = str[right];
+
+    while(has(c)){
+      const oldLeft = left;
+      const lc = str[left];
+      const rmIdx = setArr.indexOf(lc);
+      setArr.splice(rmIdx,1);
+      left++;
+      snap({left,right,set:[...setArr],maxLen,bestS,bestE,dupIdx:right, verdict:'Shrink (duplicate ahead)', vclass:'left',
+        sumHtml:`'${c}' already room mein hai &nbsp;→&nbsp; eject '${lc}' (index ${oldLeft})`,
+        desc:`Left edge se <b>'${lc}'</b> nikala kyunki naya guest <b>'${c}'</b> duplicate hai. Window ab <b>[${left}, ${right-1}]</b>.`,
+        line:'shrink'});
+    }
+
+    setArr.push(c);
+    const len = right-left+1;
+    const improved = len>maxLen;
+    if(improved){ maxLen=len; bestS=left; bestE=right; }
+    snap({left,right,set:[...setArr],maxLen,bestS,bestE, verdict: improved?'New longest!':'Grow, no improvement', vclass: improved?'best':'right',
+      sumHtml:`window.add('${c}') &nbsp;·&nbsp; len = ${right}-${left}+1 = <b>${len}</b>`,
+      desc: improved ? `Naya longest window mila: <b>[${left}, ${right}]</b>, length <b>${len}</b>.` : `<b>'${c}'</b> andar aaya, par longest already <b>${maxLen}</b> hai.`,
+      line:'grow'});
+  }
+
+  snap({left,right:n-1,set:[...setArr],maxLen,bestS,bestE, verdict:'Done', vclass:'best',
+    sumHtml:`return <b>${maxLen}</b>`,
+    desc: `Sabse lambi window <b>[${bestS}, ${bestE}]</b> = "${str.slice(bestS,bestE+1)}", length <b>${maxLen}</b>.`,
+    line:'return'});
+
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), bestBox=$('bestBox'),
+      freqMapEl=$('freqMap'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const s = PRESETS[idx];
+  steps = buildSteps(s);
+  cur=0;
+  rawLabel.textContent = `s: "${s}"`;
+  dimLabel.textContent = `n = ${s.length}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  arrEl.innerHTML='';
+  if(s.str.length===0){
+    arrEl.innerHTML = '<span class="empty-note">(empty string — no cells to show)</span>';
+  } else {
+    [...s.str].forEach((v,idx)=>{
+      const c=document.createElement('div');
+      c.className='cell';
+      let flags=[];
+      const inWin = s.left>=0 && s.right>=0 && idx>=s.left && idx<=s.right;
+      if(inWin) c.classList.add('inwin');
+      if(idx<s.left) c.classList.add('exited');
+      if(idx>s.right && s.right>=0) c.classList.add('unvisited');
+      if(idx===s.left){ c.classList.add('left-edge'); flags.push(['left','L']); }
+      if(idx===s.right){ c.classList.add('right-edge'); flags.push(['right','R']); }
+      if(idx===s.dupIdx) c.classList.add('dupe');
+      if(s.vclass==='best' && s.bestS>=0 && idx>=s.bestS && idx<=s.bestE) c.classList.add('best');
+      c.innerHTML = `<span class="idx">${idx}</span>${v}`;
+      flags.forEach((f,fi)=>{
+        const fl=document.createElement('div');
+        fl.className=`flag ${f[0]}${fi>0?' stack':''}`;
+        fl.textContent=f[1];
+        c.appendChild(fl);
+      });
+      arrEl.appendChild(c);
+    });
+  }
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  bestBox.textContent = s.maxLen;
+
+  freqMapEl.innerHTML = s.set.length===0
+    ? '<span class="empty">empty…</span>'
+    : s.set.map(ch=>`<span class="freq-chip">'${ch}'</span>`).join('');
+
+  let cls='';
+  if(s.vclass==='best') cls='-b';
+  else if(s.vclass==='left') cls='-l';
+  else if(s.vclass==='right') cls='-r';
+  renderCode(s.line, cls);
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

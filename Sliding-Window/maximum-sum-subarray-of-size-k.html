@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Max Sum Subarray of Size K · Sliding Window Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --left:#2F6DB5;          /* blue  – left edge */
+    --left-fill:#E3EEFA;
+    --right:#C67A00;         /* amber – right edge */
+    --right-fill:#FBEFD6;
+    --window:#7C5CBF;        /* purple – inside window */
+    --window-fill:#EFE9FA;
+    --best:#2E7D57;          /* green – best-so-far / answer */
+    --best-fill:#E4F1E9;
+    --bad:#B5453B;           /* red – invalid state */
+    --bad-fill:#F7E3E0;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --accent:#7C5CBF;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(26px,5vw,40px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--left);}
+  .sub{color:var(--ink-soft);max-width:70ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:34px 22px 12px;}
+  .arr-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .arr{
+    display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+    position:relative;padding-top:34px;
+  }
+  .cell{
+    position:relative;
+    width:56px;height:56px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:18px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell .idx{
+    position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+    font-size:10px;font-weight:500;color:var(--ink-soft);
+  }
+  .cell.inwin{background:var(--window-fill);border-color:var(--window);}
+  .cell.left-edge{border-color:var(--left);color:var(--left);}
+  .cell.right-edge{border-color:var(--right);color:var(--right);transform:translateY(-3px);}
+  .cell.best{box-shadow:inset 0 -4px 0 var(--best);}
+  .cell.bad{background:var(--bad-fill);border-color:var(--bad);color:var(--bad);}
+  .cell.done{opacity:.35;}
+
+  .flag{
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+  }
+  .flag.left{background:var(--left);color:#fff;}
+  .flag.right{background:var(--right);color:#fff;}
+  .flag.stack{top:-24px;}
+
+  .readout{
+    margin:8px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:112px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.left{background:var(--left-fill);color:var(--left);}
+  .verdict.right{background:var(--right-fill);color:var(--right);}
+  .verdict.best{background:var(--best-fill);color:var(--best);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.bad{background:var(--bad-fill);color:var(--bad);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:15px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .found{
+    padding:14px 18px 22px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .best-box{
+    font-family:"JetBrains Mono",monospace;font-size:20px;font-weight:700;
+    background:var(--best-fill);border:1.5px solid var(--best);color:var(--best);
+    padding:8px 14px;border-radius:10px;display:inline-block;
+  }
+
+  .code-scroll{max-height:520px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-l{background:var(--left-fill);}
+  pre.code .ln.hot-r{background:var(--right-fill);}
+  pre.code .ln.hot-b{background:var(--best-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#6a4aa8;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.left{background:var(--left-fill);border-color:var(--left);}
+  .sw.right{background:var(--right-fill);border-color:var(--right);}
+  .sw.window{background:var(--window-fill);border-color:var(--window);}
+  .sw.best{background:var(--best-fill);border-color:var(--best);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{width:44px;height:44px;font-size:15px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Sliding Window · Fixed Size · GFG · Easy</div>
+    <h1>Maximum Sum <span class="n">Subarray of Size K</span></h1>
+    <p class="sub">A <code>k</code>-wide <b style="color:var(--window)">viewfinder</b> slides across the array. Each step,
+    one element steps in at the <b style="color:var(--right)">right edge</b> and one steps out at the
+    <b style="color:var(--left)">left edge</b> — no need to re-sum the whole window.
+    Track the <b style="color:var(--best)">best sum seen so far</b>. Step through and watch it slide.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Sliding Window (fixed size)</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[100,200,300,400], k=2</button>
+    <button class="chip" data-preset="1">[2,1,5,1,3,2], k=3</button>
+    <button class="chip" data-preset="2">[-1,-2,-3,-4], k=2</button>
+    <button class="chip" data-preset="3">[5], k=1</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>The Array</span><span id="dimLabel">n = 4, k = 2</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">arr: [100, 200, 300, 400]</div>
+        <div class="arr" id="arr"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found">
+        <div class="found-head">Best sum so far</div>
+        <div id="bestWrap"><span class="best-box" id="bestBox">—</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw left"></i> left edge — element exiting</span>
+    <span><i class="sw right"></i> right edge — element entering</span>
+    <span><i class="sw window"></i> inside window (size k)</span>
+    <span><i class="sw best"></i> best sum recorded here</span>
+  </div>
+
+  <p class="foot">
+    Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="kw">int</span> <span class="fn">maxSumSubarray</span>(<span class="kw">int</span>[] arr, <span class="kw">int</span> k) {', id:null},
+  {t:'  <span class="kw">int</span> n = arr.length;', id:null},
+  {t:'', id:null},
+  {t:'  <span class="cmt">// 1) seed first window [0, k-1]</span>', id:null},
+  {t:'  <span class="kw">int</span> windowSum = <span class="kw">0</span>;', id:'seedInit'},
+  {t:'  <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; k; i++) {', id:'seedFor'},
+  {t:'    windowSum += arr[i];', id:'seedAdd'},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">int</span> maxSum = windowSum;', id:'seedMax'},
+  {t:'', id:null},
+  {t:'  <span class="cmt">// 2) slide the window one step at a time</span>', id:null},
+  {t:'  <span class="kw">for</span> (<span class="kw">int</span> right = k; right &lt; n; right++) {', id:'for'},
+  {t:'    <span class="kw">int</span> left = right - k;', id:'left'},
+  {t:'', id:null},
+  {t:'    windowSum += arr[right];     <span class="cmt">// enter</span>', id:'enter'},
+  {t:'    windowSum -= arr[left];      <span class="cmt">// exit</span>', id:'exit'},
+  {t:'', id:null},
+  {t:'    maxSum = Math.max(maxSum, windowSum);', id:'max'},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">return</span> maxSum;', id:'return'},
+  {t:'}', id:null},
+];
+
+/* ---------- presets ---------- */
+const PRESETS = [
+  {arr:[100,200,300,400], k:2},
+  {arr:[2,1,5,1,3,2], k:3},
+  {arr:[-1,-2,-3,-4], k:2},
+  {arr:[5], k:1},
+];
+
+/* ---------- step generator (mirrors the Java) ---------- */
+function buildSteps(arr, k){
+  const n = arr.length;
+  const steps = [];
+  const snap = (o)=>steps.push(Object.assign({
+    arr, left:-1, right:-1, windowSum:null, maxSum:null,
+    verdict:'', vclass:'info', sumHtml:'', desc:'',
+    line:null, doneUpTo:-1,
+  }, o));
+
+  let windowSum = 0;
+  for(let i=0;i<k;i++) windowSum += arr[i];
+  let maxSum = windowSum;
+
+  snap({left:0, right:k-1, windowSum, maxSum, verdict:'Seed window', vclass:'best',
+    sumHtml:`windowSum = arr[0..${k-1}] = <b>${windowSum}</b>`,
+    desc:`Pehli window <b>[0, ${k-1}]</b> ka sum seed kiya. Yehi abhi ka best hai.`,
+    line:'seedMax'});
+
+  for(let right=k; right<n; right++){
+    const left = right - k;
+    const prevSum = windowSum;
+    windowSum = windowSum + arr[right];
+    snap({left, right:right-1, windowSum, maxSum, verdict:'Enter', vclass:'right',
+      sumHtml:`windowSum = ${prevSum} <span class="op">+</span> arr[${right}](${arr[right]}) <span class="op">=</span> <b>${windowSum}</b>`,
+      desc:`Naya element <b>arr[${right}] = ${arr[right]}</b> right edge se andar aaya.`,
+      line:'enter'});
+    const afterEnter = windowSum;
+    windowSum = windowSum - arr[left];
+    snap({left, right, windowSum, maxSum, verdict:'Exit', vclass:'left',
+      sumHtml:`windowSum = ${afterEnter} <span class="op">−</span> arr[${left}](${arr[left]}) <span class="op">=</span> <b>${windowSum}</b>`,
+      desc:`Purana element <b>arr[${left}] = ${arr[left]}</b> left edge se bahar nikla. Window ab <b>[${left+1}, ${right}]</b>.`,
+      line:'exit'});
+    const improved = windowSum > maxSum;
+    if(improved) maxSum = windowSum;
+    snap({left:left+1, right, windowSum, maxSum, verdict: improved?'New best!':'No change', vclass: improved?'best':'info',
+      sumHtml: improved ? `maxSum = max(${maxSum===windowSum?'…':maxSum}, ${windowSum}) = <b>${maxSum}</b>` : `maxSum stays <b>${maxSum}</b>`,
+      desc: improved ? `Naya best mila — window <b>[${left+1}, ${right}]</b> ka sum <b>${windowSum}</b> hai.` : `Yeh window purane best se choti hai, maxSum unchanged.`,
+      line:'max'});
+  }
+
+  snap({maxSum, verdict:'Done', vclass:'best',
+    sumHtml:`return <b>${maxSum}</b>`,
+    desc:'Poora array scan ho gaya. Yehi maximum window sum hai.',
+    line:'return', doneUpTo:n});
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0, curK=2;
+
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), bestBox=$('bestBox'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const {arr,k} = PRESETS[idx];
+  curK = k;
+  steps = buildSteps(arr, k);
+  cur=0;
+  rawLabel.textContent = `arr: [${arr.join(', ')}]`;
+  dimLabel.textContent = `n = ${arr.length}, k = ${k}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  arrEl.innerHTML='';
+  s.arr.forEach((v,idx)=>{
+    const c=document.createElement('div');
+    c.className='cell';
+    let flags=[];
+    if(idx<s.left || (s.doneUpTo>=0 && idx>=s.doneUpTo)) { /* no-op, handled below */ }
+    const inWin = s.left>=0 && s.right>=0 && idx>=s.left && idx<=s.right;
+    if(inWin) c.classList.add('inwin');
+    if(idx===s.left){ c.classList.add('left-edge'); flags.push(['left','L']); }
+    if(idx===s.right){ c.classList.add('right-edge'); flags.push(['right','R']); }
+    if(s.vclass==='best' && inWin) c.classList.add('best');
+    c.innerHTML = `<span class="idx">${idx}</span>${v}`;
+    flags.forEach((f,fi)=>{
+      const fl=document.createElement('div');
+      fl.className=`flag ${f[0]}${fi>0?' stack':''}`;
+      fl.textContent=f[1];
+      c.appendChild(fl);
+    });
+    arrEl.appendChild(c);
+  });
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  bestBox.textContent = s.maxSum===null ? '—' : s.maxSum;
+
+  let cls='';
+  if(s.vclass==='best') cls='-b';
+  else if(s.vclass==='left') cls='-l';
+  else if(s.vclass==='right') cls='-r';
+  renderCode(s.line, cls);
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

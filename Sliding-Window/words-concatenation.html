@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Substring with Concatenation of All Words · Sliding Window Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --left:#2F6DB5;
+    --left-fill:#E3EEFA;
+    --right:#C67A00;
+    --right-fill:#FBEFD6;
+    --window:#7C5CBF;
+    --window-fill:#EFE9FA;
+    --best:#2E7D57;
+    --best-fill:#E4F1E9;
+    --bad:#B5453B;
+    --bad-fill:#F7E3E0;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --accent:#7C5CBF;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(19px,4vw,32px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--left);}
+  .sub{color:var(--ink-soft);max-width:74ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:34px 20px 12px;}
+  .arr-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:6px;letter-spacing:.08em;
+  }
+  .offsetrow{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    color:var(--window);margin-bottom:16px;font-weight:700;
+  }
+  .arr{
+    display:flex;gap:5px;justify-content:center;flex-wrap:wrap;
+    position:relative;padding-top:34px;
+  }
+  .cell{
+    position:relative;
+    min-width:46px;height:42px;padding:0 6px;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:14px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell.charcell{min-width:26px;font-size:12px;opacity:.4;}
+  .cell .idx{
+    position:absolute;top:-17px;left:50%;transform:translateX(-50%);
+    font-size:8.5px;font-weight:500;color:var(--ink-soft);
+  }
+  .cell.inwin{background:var(--window-fill);border-color:var(--window);}
+  .cell.left-edge{border-color:var(--left);color:var(--left);}
+  .cell.right-edge{border-color:var(--right);color:var(--right);transform:translateY(-3px);}
+  .cell.matched{background:var(--best-fill);border-color:var(--best);color:var(--best);}
+  .cell.badword{background:var(--bad-fill);border-color:var(--bad);color:var(--bad);}
+  .cell.exited{opacity:.32;}
+  .cell.unvisited{opacity:.55;}
+
+  .flag{
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:8.5px;font-weight:700;
+    padding:2px 5px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+  }
+  .flag.left{background:var(--left);color:#fff;}
+  .flag.right{background:var(--right);color:#fff;}
+  .flag.stack{top:-22px;}
+
+  .readout{
+    margin:8px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:82px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.left{background:var(--left-fill);color:var(--left);}
+  .verdict.right{background:var(--right-fill);color:var(--right);}
+  .verdict.best{background:var(--best-fill);color:var(--best);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.bad{background:var(--bad-fill);color:var(--bad);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:13.5px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .found{
+    padding:14px 18px 18px;border-top:1px solid var(--line);margin-top:6px;
+    display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .kbox{
+    font-family:"JetBrains Mono",monospace;font-size:16px;font-weight:700;
+    background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);
+    padding:8px 14px;border-radius:10px;display:inline-block;
+  }
+  .freqmap{display:flex;gap:8px;flex-wrap:wrap;min-height:38px;}
+  .freq-chip{
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;font-weight:700;
+    background:var(--window-fill);border:1.5px solid var(--window);color:var(--window);
+    padding:6px 10px;border-radius:8px;
+  }
+  .freq-chip.sat{background:var(--best-fill);border-color:var(--best);color:var(--best);}
+  .freq-chip .empty{color:var(--ink-soft);font-weight:400;font-style:italic;}
+  .matchlist{display:flex;gap:8px;flex-wrap:wrap;min-height:38px;}
+  .match-chip{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    background:var(--best-fill);border:1.5px solid var(--best);color:var(--best);
+    padding:6px 10px;border-radius:8px;
+    animation:pop .35s ease;
+  }
+  @keyframes pop{from{transform:scale(.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:11.5px;line-height:1.65;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-l{background:var(--left-fill);}
+  pre.code .ln.hot-r{background:var(--right-fill);}
+  pre.code .ln.hot-b{background:var(--best-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#6a4aa8;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.left{background:var(--left-fill);border-color:var(--left);}
+  .sw.right{background:var(--right-fill);border-color:var(--right);}
+  .sw.window{background:var(--window-fill);border-color:var(--window);}
+  .sw.best{background:var(--best-fill);border-color:var(--best);}
+  .sw.bad{background:var(--bad-fill);border-color:var(--bad);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:900px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{min-width:38px;height:36px;font-size:12px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Sliding Window · Word Granularity · Multiple Offsets · LeetCode 30 · Hard</div>
+    <h1>Substring with <span class="n">Concatenation of All Words</span></h1>
+    <p class="sub">Words are fixed-length box-cars. For each of the <code>wordLen</code> possible starting
+    <b>offsets</b>, chunk <code>s</code> into words and run a word-granularity window: grow while chunks are
+    <b style="color:var(--right)">needed</b>, reset entirely on an <b style="color:var(--bad)">unknown chunk</b>,
+    shrink from the <b style="color:var(--left)">left</b> on a duplicate, and record a
+    <b style="color:var(--best)">match</b> when every word's count lines up.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(numWords)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Sliding Window (word chunks, per offset)</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">s="barfoothefoobarman", words=[foo,bar]</button>
+    <button class="chip" data-preset="1">s="wordgoodgoodbestword", words=[word,good,best,word]</button>
+    <button class="chip" data-preset="2">s="barfoofoobarthefoobarman", words=[bar,foo,the]</button>
+    <button class="chip" data-preset="3">s="a", words=[a]</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>The Track (s)</span><span id="dimLabel">n = 19</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">s: "barfoothefoobarman"</div>
+        <div class="offsetrow" id="offsetRow">offset = 0 · wordLen = 3</div>
+        <div class="arr" id="arr"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found">
+        <div>
+          <div class="found-head">count / numWords</div>
+          <span class="kbox" id="countBox">0 / 2</span>
+        </div>
+        <div style="flex:1;min-width:160px;">
+          <div class="found-head">Shopping list (need : have)</div>
+          <div class="freqmap" id="freqMap"><span class="empty">empty…</span></div>
+        </div>
+        <div style="flex:1;min-width:160px;">
+          <div class="found-head">Matches found (all offsets)</div>
+          <div class="matchlist" id="matchList"><span class="empty">none yet…</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw left"></i> left edge — shrinking / sliding</span>
+    <span><i class="sw right"></i> right edge — growing</span>
+    <span><i class="sw window"></i> inside window</span>
+    <span><i class="sw bad"></i> unknown chunk (reset)</span>
+    <span><i class="sw best"></i> match found</span>
+  </div>
+
+  <p class="foot">
+    Faded small cells = leftover characters that don't form a full word chunk at this offset. Keyboard:
+    <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> List&lt;Integer&gt; <span class="fn">findSubstring</span>(String s, String[] words) {', id:null},
+  {t:'  List&lt;Integer&gt; result = <span class="kw">new</span> ArrayList&lt;&gt;();', id:'init'},
+  {t:'  <span class="kw">int</span> wordLen = words[0].length();', id:null},
+  {t:'  <span class="kw">int</span> numWords = words.length;', id:null},
+  {t:'', id:null},
+  {t:'  Map&lt;String,Integer&gt; need = <span class="kw">new</span> HashMap&lt;&gt;();', id:null},
+  {t:'  <span class="kw">for</span> (String w : words) need.put(w, need.getOrDefault(w,0)+1);', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">for</span> (<span class="kw">int</span> offset = 0; offset &lt; wordLen; offset++) {', id:'offsetFor'},
+  {t:'    <span class="kw">int</span> left = offset, count = 0;', id:'offsetInit'},
+  {t:'    Map&lt;String,Integer&gt; window = <span class="kw">new</span> HashMap&lt;&gt;();', id:null},
+  {t:'', id:null},
+  {t:'    <span class="kw">for</span> (<span class="kw">int</span> right = offset; right+wordLen &lt;= s.length(); right += wordLen) {', id:'for'},
+  {t:'      String w = s.substring(right, right+wordLen);', id:null},
+  {t:'', id:null},
+  {t:'      <span class="kw">if</span> (need.containsKey(w)) {', id:'ifNeed'},
+  {t:'        window.put(w, window.getOrDefault(w,0)+1);', id:'grow'},
+  {t:'        count++;', id:'growCount'},
+  {t:'', id:null},
+  {t:'        <span class="kw">while</span> (window.get(w) &gt; need.get(w)) {', id:'while'},
+  {t:'          String leftWord = s.substring(left, left+wordLen);', id:null},
+  {t:'          window.put(leftWord, window.get(leftWord)-1);', id:'shrink'},
+  {t:'          count--; left += wordLen;', id:'shrinkCount'},
+  {t:'        }', id:null},
+  {t:'', id:null},
+  {t:'        <span class="kw">if</span> (count == numWords) {', id:'checkMatch'},
+  {t:'          result.add(left);', id:'add'},
+  {t:'          String leftWord = s.substring(left, left+wordLen);', id:null},
+  {t:'          window.put(leftWord, window.get(leftWord)-1);', id:'slideAfter'},
+  {t:'          count--; left += wordLen;', id:'slideAfterCount'},
+  {t:'        }', id:null},
+  {t:'      } <span class="kw">else</span> {', id:null},
+  {t:'        window.clear(); count = 0; left = right + wordLen;   <span class="cmt">// reset</span>', id:'reset'},
+  {t:'      }', id:null},
+  {t:'    }', id:null},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">return</span> result;', id:'return'},
+  {t:'}', id:null},
+];
+
+/* ---------- presets ---------- */
+const PRESETS = [
+  {s:'barfoothefoobarman', words:['foo','bar']},
+  {s:'wordgoodgoodbestword', words:['word','good','best','word']},
+  {s:'barfoofoobarthefoobarman', words:['bar','foo','the']},
+  {s:'a', words:['a']},
+];
+
+/* ---------- step generator (mirrors the Java) ---------- */
+function buildSteps(s, words){
+  const wordLen = words[0].length;
+  const numWords = words.length;
+  const n = s.length;
+  const need = {};
+  for(const w of words) need[w]=(need[w]||0)+1;
+
+  const steps = [];
+  const allMatches = [];
+  const snap = (o)=>steps.push(Object.assign({
+    s, wordLen, offset:0, left:-1, right:-1, window:{}, need:{...need}, count:0, numWords,
+    matches:[...allMatches],
+    verdict:'', vclass:'info', sumHtml:'', desc:'', line:null,
+  }, o));
+
+  for(let offset=0; offset<wordLen; offset++){
+    let left = offset, count = 0;
+    const window = {};
+
+    snap({offset,left,right:offset-wordLen,window:{...window},count, verdict:`Offset ${offset}`, vclass:'info',
+      sumHtml:`naya offset shuru: chunks ${offset}, ${offset+wordLen}, ${offset+2*wordLen}...`,
+      desc:`Offset <b>${offset}</b> se word-chunking shuru. Window/count reset.`,
+      line:'offsetInit'});
+
+    for(let right=offset; right+wordLen<=n; right+=wordLen){
+      const w = s.slice(right, right+wordLen);
+
+      if(need[w] !== undefined){
+        window[w] = (window[w]||0)+1;
+        count++;
+        snap({offset,left,right,window:{...window},count, verdict:'Grow', vclass:'right',
+          sumHtml:`chunk "${w}" needed &nbsp;→&nbsp; window['${w}'] = <b>${window[w]}</b>, count = <b>${count}</b>`,
+          desc:`Chunk <b>"${w}"</b> (char ${right}) list mein hai — window mein jodo.`,
+          line:'grow'});
+
+        while(window[w] > need[w]){
+          const leftWord = s.slice(left, left+wordLen);
+          window[leftWord] -= 1;
+          count--;
+          const oldLeft = left;
+          left += wordLen;
+          snap({offset,left,right,window:{...window},count, verdict:'Shrink (duplicate)', vclass:'left',
+            sumHtml:`window['${w}'] &gt; need['${w}'] &nbsp;→&nbsp; remove "${leftWord}" (char ${oldLeft})`,
+            desc:`<b>"${w}"</b> zyada baar aa gaya. Left se <b>"${leftWord}"</b> nikala.`,
+            line:'shrink'});
+        }
+
+        if(count === numWords){
+          allMatches.push(left);
+          snap({offset,left,right,window:{...window},count, matches:[...allMatches], verdict:'MATCH!', vclass:'best',
+            sumHtml:`count == numWords(${numWords}) &nbsp;→&nbsp; result.add(${left})`,
+            desc:`Window <b>[${left}, ${right+wordLen-1}]</b> = "${s.slice(left,right+wordLen)}" saare words ka concatenation hai!`,
+            line:'add'});
+
+          const leftWord = s.slice(left, left+wordLen);
+          window[leftWord] -= 1;
+          count--;
+          const oldLeft = left;
+          left += wordLen;
+          snap({offset,left,right,window:{...window},count, matches:[...allMatches], verdict:'Slide after match', vclass:'left',
+            sumHtml:`remove "${leftWord}" (char ${oldLeft}), left aage badha`,
+            desc:'Match record ho gaya. Left ko ek word aage khiskao — agla (shayad overlapping) match dhoondo.',
+            line:'slideAfter'});
+        }
+      } else {
+        for(const k in window) delete window[k];
+        count = 0;
+        const oldLeft = left;
+        left = right + wordLen;
+        snap({offset,left,right,window:{...window},count, verdict:'RESET (unknown chunk)', vclass:'bad',
+          sumHtml:`"${w}" list mein nahi hai &nbsp;→&nbsp; window clear, left jump to ${left}`,
+          desc:`Chunk <b>"${w}"</b> (char ${right}) list mein hi nahi hai — koi bhi window jisme yeh ho invalid hai. Poora reset.`,
+          line:'reset'});
+      }
+    }
+  }
+
+  snap({offset:wordLen-1, left:-1, right:-1, window:{}, count:0, matches:[...allMatches], verdict:'Done', vclass:'best',
+    sumHtml:`return [${allMatches.join(', ')}]`,
+    desc: allMatches.length ? `Saare offsets scan ho gaye. ${allMatches.length} match(es) mile.` : 'Saare offsets scan ho gaye, koi match nahi mila.',
+    line:'return'});
+
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), countBox=$('countBox'),
+      freqMapEl=$('freqMap'), offsetRow=$('offsetRow'), matchListEl=$('matchList'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const {s,words} = PRESETS[idx];
+  steps = buildSteps(s, words);
+  cur=0;
+  rawLabel.textContent = `s: "${s}"  ·  words: [${words.join(', ')}]`;
+  dimLabel.textContent = `n = ${s.length}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const st = steps[cur];
+  const wl = st.wordLen, offset = st.offset, s = st.s, n = s.length;
+
+  arrEl.innerHTML='';
+  // leading skipped chars
+  for(let i=0;i<offset;i++){
+    const c=document.createElement('div');
+    c.className='cell charcell';
+    c.innerHTML = `<span class="idx">${i}</span>${s[i]}`;
+    arrEl.appendChild(c);
+  }
+  // full chunks
+  const numChunks = Math.floor((n-offset)/wl);
+  for(let ci=0; ci<numChunks; ci++){
+    const charStart = offset + ci*wl;
+    const word = s.slice(charStart, charStart+wl);
+    const c=document.createElement('div');
+    c.className='cell';
+    let flags=[];
+    const inWin = st.left>=0 && st.right>=0 && charStart>=st.left && charStart<=st.right;
+    if(inWin) c.classList.add('inwin');
+    if(st.left>=0 && charStart<st.left) c.classList.add('exited');
+    if(st.right>=0 && charStart>st.right) c.classList.add('unvisited');
+    if(charStart===st.left){ c.classList.add('left-edge'); flags.push(['left','L']); }
+    if(charStart===st.right){
+      c.classList.add('right-edge'); flags.push(['right','R']);
+      if(st.vclass==='bad') c.classList.add('badword');
+    }
+    if(st.vclass==='best' && charStart===st.left-wl) c.classList.add('matched');
+    c.innerHTML = `<span class="idx">${charStart}</span>${word}`;
+    flags.forEach((f,fi)=>{
+      const fl=document.createElement('div');
+      fl.className=`flag ${f[0]}${fi>0?' stack':''}`;
+      fl.textContent=f[1];
+      c.appendChild(fl);
+    });
+    arrEl.appendChild(c);
+  }
+  // trailing leftover chars
+  const tailStart = offset + numChunks*wl;
+  for(let i=tailStart;i<n;i++){
+    const c=document.createElement('div');
+    c.className='cell charcell';
+    c.innerHTML = `<span class="idx">${i}</span>${s[i]}`;
+    arrEl.appendChild(c);
+  }
+
+  verdictEl.className = `verdict ${st.vclass}`;
+  verdictEl.innerHTML = st.verdict;
+  sumEl.innerHTML = st.sumHtml || '&nbsp;';
+  descEl.innerHTML = st.desc || '';
+  countBox.textContent = `${st.count} / ${st.numWords}`;
+  offsetRow.textContent = `offset = ${offset} · wordLen = ${wl}`;
+
+  const keys = Object.keys(st.need);
+  freqMapEl.innerHTML = keys.length===0
+    ? '<span class="empty">empty…</span>'
+    : keys.map(w=>{
+        const have = st.window[w]||0;
+        const sat = have === st.need[w];
+        return `<span class="freq-chip${sat?' sat':''}">"${w}": ${st.need[w]} (have ${have})</span>`;
+      }).join('');
+
+  matchListEl.innerHTML = st.matches.length===0
+    ? '<span class="empty">none yet…</span>'
+    : st.matches.map(i=>`<span class="match-chip">idx ${i}</span>`).join('');
+
+  let cls='';
+  if(st.vclass==='best') cls='-b';
+  else if(st.vclass==='left') cls='-l';
+  else if(st.vclass==='right') cls='-r';
+  renderCode(st.line, cls);
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
