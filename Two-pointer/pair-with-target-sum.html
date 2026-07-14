@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Two Sum II · Seesaw Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --light:#2F6DB5;         /* blue  – Light End (left) */
+    --light-fill:#E3EEFA;
+    --heavy:#C67A00;         /* amber – Heavy End (right) */
+    --heavy-fill:#FBEFD6;
+    --balance:#2E7D57;       /* green – balanced */
+    --balance-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(28px,5vw,44px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--heavy);}
+  .sub{color:var(--ink-soft);max-width:70ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:30px 22px 12px;}
+  .arr-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .arr{
+    display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+    position:relative;padding-top:34px;
+  }
+  .cell{
+    position:relative;
+    width:56px;height:56px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:19px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell .idx{
+    position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+    font-size:10px;font-weight:500;color:var(--ink-soft);
+  }
+  .cell.light{background:var(--light-fill);border-color:var(--light);color:var(--light);}
+  .cell.heavy{background:var(--heavy-fill);border-color:var(--heavy);color:var(--heavy);}
+  .cell.balance{background:var(--balance-fill);border-color:var(--balance);color:var(--balance);transform:translateY(-3px);}
+  .cell.done{opacity:.32;}
+
+  .flag{
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+  }
+  .flag.light{background:var(--light);color:#fff;}
+  .flag.heavy{background:var(--heavy);color:#fff;}
+
+  .readout{
+    margin:8px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:112px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.light{background:var(--light-fill);color:var(--light);}
+  .verdict.heavy{background:var(--heavy-fill);color:var(--heavy);}
+  .verdict.balance{background:var(--balance-fill);color:var(--balance);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:15px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .found{
+    padding:14px 18px 22px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .trips{display:flex;gap:9px;flex-wrap:wrap;min-height:34px;}
+  .trip{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    background:var(--balance-fill);border:1.5px solid var(--balance);color:var(--balance);
+    padding:6px 11px;border-radius:9px;
+    animation:pop .35s ease;
+  }
+  .trips .empty{color:var(--ink-soft);font-size:12.5px;font-style:italic;}
+  @keyframes pop{from{transform:scale(.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+  .code-scroll{max-height:520px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot{background:var(--light-fill);}
+  pre.code .ln.hot-a{background:var(--heavy-fill);}
+  pre.code .ln.hot-z{background:var(--balance-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.light{background:var(--light-fill);border-color:var(--light);}
+  .sw.heavy{background:var(--heavy-fill);border-color:var(--heavy);}
+  .sw.balance{background:var(--balance-fill);border-color:var(--balance);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{width:46px;height:46px;font-size:16px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Array · Two Pointers · LeetCode 167 · Medium</div>
+    <h1>Two Sum II <span class="n">(Sorted)</span></h1>
+    <p class="sub">Array already sorted hai — imagine a <b>seesaw</b>. The <b style="color:var(--light)">Light End</b> (<code>left</code>)
+    starts at the smallest value, the <b style="color:var(--heavy)">Heavy End</b> (<code>right</code>) at the largest.
+    Sum too light? Light End steps right. Too heavy? Heavy End steps left.
+    <b style="color:var(--balance)">Sum = target</b> is perfect balance. Step through and watch it play out.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Two Pointers (sorted)</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[2,7,11,15] target=9</button>
+    <button class="chip" data-preset="1">[2,3,4] target=6</button>
+    <button class="chip" data-preset="2">[-1,0] target=-1</button>
+    <button class="chip" data-preset="3">[1,2,3,4,4,9,56,90] target=8</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>The Seesaw (sorted)</span><span id="dimLabel">n = 4</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">numbers: [2, 7, 11, 15]  ·  target = 9</div>
+        <div class="arr" id="arr"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found">
+        <div class="found-head">Answer</div>
+        <div class="trips" id="trips"><span class="empty">not found yet…</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw light"></i> Light End <code style="font-family:'JetBrains Mono'">left</code></span>
+    <span><i class="sw heavy"></i> Heavy End <code style="font-family:'JetBrains Mono'">right</code></span>
+    <span><i class="sw balance"></i> balanced — sum = target</span>
+  </div>
+
+  <p class="foot">
+    * indices returned are 1-indexed, per LeetCode 167. Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="kw">int</span>[] <span class="fn">twoSum</span>(<span class="kw">int</span>[] numbers, <span class="kw">int</span> target) {', id:null},
+  {t:'  <span class="kw">int</span> left = 0, right = numbers.length - 1;', id:'init'},
+  {t:'', id:null},
+  {t:'  <span class="kw">while</span> (left &lt; right) {', id:'while'},
+  {t:'    <span class="kw">int</span> sum = numbers[left] + numbers[right];', id:'sum'},
+  {t:'', id:null},
+  {t:'    <span class="kw">if</span> (sum == target) {', id:'eq'},
+  {t:'      <span class="kw">return</span> <span class="kw">new</span> <span class="kw">int</span>[]{left + 1, right + 1};', id:'return'},
+  {t:'    } <span class="kw">else if</span> (sum &lt; target) {', id:'lt'},
+  {t:'      left++;                       <span class="cmt">// too light → move right</span>', id:'incL'},
+  {t:'    } <span class="kw">else</span> {', id:'gt'},
+  {t:'      right--;                      <span class="cmt">// too heavy → move left</span>', id:'decR'},
+  {t:'    }', id:null},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">return</span> <span class="kw">new</span> <span class="kw">int</span>[]{-1, -1};   <span class="cmt">// unreachable per constraints</span>', id:'fail'},
+  {t:'}', id:null},
+];
+
+/* ---------- presets ---------- */
+const PRESETS = [
+  {nums:[2,7,11,15], target:9},
+  {nums:[2,3,4], target:6},
+  {nums:[-1,0], target:-1},
+  {nums:[1,2,3,4,4,9,56,90], target:8},
+];
+
+/* ---------- step generator (mirrors the Java) ---------- */
+function buildSteps(raw){
+  const nums = raw.nums;
+  const target = raw.target;
+  const steps = [];
+  let answer = null;
+  const snap = (o)=>steps.push(Object.assign({
+    nums, left:-1,right:-1, sum:null,
+    verdict:'', vclass:'info', sumHtml:'', desc:'',
+    line:null, answer,
+    doneUpTo:-1,
+  }, o));
+
+  let left=0, right=nums.length-1;
+  snap({left,right, verdict:'Init', vclass:'info',
+    sumHtml:`left = 0, right = ${right} &nbsp;·&nbsp; target = <b>${target}</b>`,
+    desc:'Light End starts at the smallest value, Heavy End at the largest.',
+    line:'init'});
+
+  while(left<right){
+    const sum = nums[left]+nums[right];
+    const eq = `${nums[left]} <span class="op">+</span> ${nums[right]} <span class="op">=</span> <b>${sum}</b> &nbsp;vs&nbsp; target <b>${target}</b>`;
+    if(sum===target){
+      answer = [left+1, right+1];
+      snap({left,right,sum, verdict:'BALANCED · sum = target', vclass:'balance',
+        sumHtml:eq, desc:`Perfect balance! Return <b>[${left+1}, ${right+1}]</b> (1-indexed).`,
+        line:'return', answer, doneUpTo:PRESETS.length});
+      break;
+    } else if(sum<target){
+      snap({left,right,sum, verdict:'Too light · sum &lt; target', vclass:'light',
+        sumHtml:eq, desc:'Seesaw is too light. Need a bigger sum → Light End steps right toward heavier values.',
+        line:'incL'});
+      left++;
+    } else {
+      snap({left,right,sum, verdict:'Too heavy · sum &gt; target', vclass:'heavy',
+        sumHtml:eq, desc:'Seesaw is too heavy. Need a smaller sum → Heavy End steps left toward lighter values.',
+        line:'decR'});
+      right--;
+    }
+  }
+  if(answer===null){
+    snap({left,right, verdict:'No pair found', vclass:'heavy',
+      sumHtml:'left crossed right', desc:'Pointers met without balancing — per problem guarantee this should not happen for valid input.',
+      line:'fail'});
+  }
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), tripsEl=$('trips'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const raw = PRESETS[idx];
+  steps = buildSteps(raw);
+  cur=0;
+  rawLabel.textContent = `numbers: [${raw.nums.join(', ')}]  ·  target = ${raw.target}`;
+  dimLabel.textContent = `n = ${raw.nums.length}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  arrEl.innerHTML='';
+  s.nums.forEach((v,idx)=>{
+    const c=document.createElement('div');
+    c.className='cell';
+    let flags=[];
+    if(idx<s.left || idx>s.right) c.classList.add('done');
+    if(idx===s.left){ c.classList.add(s.sum===steps[cur].nums[s.left]+steps[cur].nums[s.right] && s.vclass==='balance' ? 'balance':'light'); flags.push(['light','left']); }
+    if(idx===s.right){ c.classList.add(s.vclass==='balance' ? 'balance':'heavy'); flags.push(['heavy','right']); }
+    c.innerHTML = `<span class="idx">${idx}</span>${v}`;
+    flags.forEach((f,fi)=>{
+      const fl=document.createElement('div');
+      fl.className=`flag ${f[0]}`;
+      fl.textContent=f[1];
+      c.appendChild(fl);
+    });
+    arrEl.appendChild(c);
+  });
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  if(!s.answer){
+    tripsEl.innerHTML='<span class="empty">not found yet…</span>';
+  } else {
+    tripsEl.innerHTML = `<span class="trip">[${s.answer.join(', ')}]</span>`;
+  }
+  renderCode(s.line, s.vclass==='balance'?'-z':(s.vclass==='heavy'&&s.line==='return'?'-a':''));
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
