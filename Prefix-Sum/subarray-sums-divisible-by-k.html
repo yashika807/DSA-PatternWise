@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Subarray Sums Divisible by K · Clock-Dial Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --cursor:#B5453B;        /* red   – current scan index */
+    --cursor-fill:#F7E3E0;
+    --need:#2F6DB5;          /* blue  – "have I seen this clock slot" lookup */
+    --need-fill:#E3EEFA;
+    --record:#C67A00;        /* amber – ledger / hashmap entries */
+    --record-fill:#FBEFD6;
+    --hit:#2E7D57;           /* green – jackpot: match found */
+    --hit-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(28px,5vw,44px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--cursor);}
+  .sub{color:var(--ink-soft);max-width:70ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:30px 22px 12px;}
+  .arr-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .arr{
+    display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+    position:relative;padding-top:34px;
+  }
+  .cell{
+    position:relative;
+    width:56px;height:56px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:19px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell .idx{
+    position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+    font-size:10px;font-weight:500;color:var(--ink-soft);
+  }
+  .cell.cursor{background:var(--cursor-fill);border-color:var(--cursor);color:var(--cursor);transform:translateY(-3px);}
+  .cell.hit{background:var(--hit-fill);border-color:var(--hit);color:var(--hit);}
+  .cell.done{opacity:.4;}
+
+  .flag{
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+    background:var(--cursor);color:#fff;
+  }
+
+  .readout{
+    margin:8px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.need{background:var(--need-fill);color:var(--need);}
+  .verdict.record{background:var(--record-fill);color:var(--record);}
+  .verdict.hit{background:var(--hit-fill);color:var(--hit);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.cursor{background:var(--cursor-fill);color:var(--cursor);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:15px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  /* Ledger (hashmap of remainders) table */
+  .ledger-wrap{
+    padding:14px 18px 20px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .ledger-head{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .ledger-count{
+    font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink);
+    background:var(--hit-fill);color:var(--hit);padding:3px 9px;border-radius:6px;font-weight:700;
+  }
+  table.ledger{
+    width:100%;border-collapse:collapse;font-family:"JetBrains Mono",monospace;font-size:12.5px;
+  }
+  table.ledger th{
+    text-align:left;color:var(--ink-soft);font-weight:500;padding:4px 8px;
+    border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  }
+  table.ledger td{padding:5px 8px;border-bottom:1px dashed var(--line);color:var(--ink);}
+  table.ledger tr.fresh td{background:var(--record-fill);}
+  table.ledger tr.used td{background:var(--hit-fill);}
+  .ledger-empty{color:var(--ink-soft);font-size:12.5px;font-style:italic;padding:6px 8px;}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-cursor{background:var(--cursor-fill);}
+  pre.code .ln.hot-need{background:var(--need-fill);}
+  pre.code .ln.hot-record{background:var(--record-fill);}
+  pre.code .ln.hot-hit{background:var(--hit-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.cursor{background:var(--cursor-fill);border-color:var(--cursor);}
+  .sw.need{background:var(--need-fill);border-color:var(--need);}
+  .sw.record{background:var(--record-fill);border-color:var(--record);}
+  .sw.hit{background:var(--hit-fill);border-color:var(--hit);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{width:46px;height:46px;font-size:16px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Prefix-Sum · HashMap · LeetCode 974 · Medium</div>
+    <h1>Subarray Sums <span class="n">Divisible by K</span></h1>
+    <p class="sub">Walk the array keeping a running <b>balance</b> (<code>prefixSum</code>). At every step, work out
+    which of the <code>k</code> <b>clock slots</b> (<code>prefixSum % k</code>, normalized) it lands on, and ask the
+    <b style="color:var(--need)">ledger</b>: "have I landed on this exact slot before?"
+    Every past day on the same slot means a subarray ending here is divisible by <code>k</code>.
+    <b style="color:var(--record)">Record</b> today's slot in the ledger and move on.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(min(n,k))</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Prefix Sum + HashMap</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[4,5,0,-2,-3,1], k=5</button>
+    <button class="chip" data-preset="1">[5], k=9</button>
+    <button class="chip" data-preset="2">[-1,2,9], k=2</button>
+    <button class="chip" data-preset="3">[-5], k=5</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>The Array (scan left → right)</span><span id="dimLabel">n = 6</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">nums = [4, 5, 0, -2, -3, 1], k = 5</div>
+        <div class="arr" id="arr"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="ledger-wrap">
+        <div class="ledger-head">
+          <span>Ledger — clock slot → times seen</span>
+          <span class="ledger-count">count = <b id="countVal">0</b></span>
+        </div>
+        <table class="ledger" id="ledgerTable"></table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw cursor"></i> current index — today's transaction</span>
+    <span><i class="sw need"></i> lookup — "landed on this clock slot before?"</span>
+    <span><i class="sw record"></i> record today's slot in ledger</span>
+    <span><i class="sw hit"></i> jackpot — match found, count++</span>
+  </div>
+
+  <p class="foot">
+    Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+const CODE_LINES = [
+  {t:'<span class="kw">class</span> Solution {', id:null},
+  {t:'  <span class="kw">public</span> <span class="kw">int</span> <span class="fn">subarraysDivByK</span>(<span class="kw">int</span>[] nums, <span class="kw">int</span> k) {', id:null},
+  {t:'    Map&lt;Integer,Integer&gt; ledger = <span class="kw">new</span> HashMap&lt;&gt;();', id:'init'},
+  {t:'    ledger.put(0, 1);          <span class="cmt">// day 0: remainder 0, empty prefix</span>', id:'init0'},
+  {t:'', id:null},
+  {t:'    <span class="kw">int</span> prefixSum = 0, count = 0;', id:'initvars'},
+  {t:'', id:null},
+  {t:'    <span class="kw">for</span> (<span class="kw">int</span> num : nums) {', id:'for'},
+  {t:'      prefixSum += num;                  <span class="cmt">// today\'s balance</span>', id:'sum'},
+  {t:'', id:null},
+  {t:'      <span class="cmt">// normalize to [0, k-1] — Java % can go negative</span>', id:null},
+  {t:'      <span class="kw">int</span> mod = ((prefixSum % k) + k) % k;', id:'mod'},
+  {t:'', id:null},
+  {t:'      <span class="cmt">// landed on this clock slot before?</span>', id:null},
+  {t:'      count += ledger.getOrDefault(mod, 0);', id:'lookup'},
+  {t:'', id:null},
+  {t:'      <span class="cmt">// record today\'s slot</span>', id:null},
+  {t:'      ledger.merge(mod, 1, Integer::sum);', id:'record'},
+  {t:'    }', id:null},
+  {t:'', id:null},
+  {t:'    <span class="kw">return</span> count;', id:'return'},
+  {t:'  }', id:null},
+  {t:'}', id:null},
+];
+
+const PRESETS = [
+  {nums:[4,5,0,-2,-3,1], k:5},
+  {nums:[5], k:9},
+  {nums:[-1,2,9], k:2},
+  {nums:[-5], k:5},
+];
+
+function buildSteps(nums, k){
+  const steps = [];
+  const snap = (o)=>steps.push(Object.assign({
+    nums, cur:-1, verdict:'', vclass:'info', sumHtml:'', desc:'',
+    line:null, ledger:{}, ledgerOrder:[], count:0, doneUpTo:-1, freshKey:null, usedKey:null,
+  }, o));
+
+  const ledger = {0:1};
+  const ledgerOrder = [0];
+  let prefixSum = 0, count = 0;
+
+  snap({verdict:'Init', vclass:'info',
+    sumHtml:`ledger &larr; <b>{0: 1}</b>`,
+    desc:'Day 0, before any transaction: balance is 0, which lands on clock slot 0. Seed the ledger so a subarray starting at index 0 can still be found.',
+    line:'init0', ledger:{...ledger}, ledgerOrder:[...ledgerOrder]});
+
+  for(let i=0;i<nums.length;i++){
+    const num = nums[i];
+    prefixSum += num;
+    snap({cur:i, verdict:'Update balance', vclass:'cursor',
+      sumHtml:`prefixSum += nums[${i}] (<b>${num}</b>) &rarr; prefixSum = <b>${prefixSum}</b>`,
+      desc:`Today's running balance after including index ${i}.`,
+      line:'sum', ledger:{...ledger}, ledgerOrder:[...ledgerOrder], count, doneUpTo:i-1});
+
+    const rawMod = prefixSum % k;
+    const mod = ((rawMod % k) + k) % k;
+    snap({cur:i, verdict:'Normalize remainder', vclass:'cursor',
+      sumHtml:`mod = ((prefixSum % k) + k) % k = ((${prefixSum} % ${k}) + ${k}) % ${k} = <b>${mod}</b>`,
+      desc: rawMod<0
+        ? `Raw <code>prefixSum % k</code> would be <b>${rawMod}</b> — Java lets remainders go negative. Normalizing keeps the slot in <b>[0, ${k-1}]</b>.`
+        : `Balance <b>${prefixSum}</b> lands on clock slot <b>${mod}</b>.`,
+      line:'mod', ledger:{...ledger}, ledgerOrder:[...ledgerOrder], count, doneUpTo:i-1});
+
+    const hits = ledger[mod] || 0;
+    count += hits;
+    snap({cur:i, verdict: hits>0 ? 'JACKPOT · match found' : 'Lookup · no match', vclass: hits>0 ? 'hit':'need',
+      sumHtml:`ledger[${mod}] = <b>${hits}</b>`,
+      desc: hits>0
+        ? `Slot <b>${mod}</b> was landed on <b>${hits}</b> time(s) before — that many subarrays ending at index ${i} are divisible by k. count += ${hits} &rarr; <b>${count}</b>.`
+        : `Slot <b>${mod}</b> was never landed on before — no subarray ending here is divisible by k.`,
+      line:'lookup', ledger:{...ledger}, ledgerOrder:[...ledgerOrder], count, doneUpTo:i-1, usedKey: mod in ledger ? mod : null});
+
+    ledger[mod] = (ledger[mod]||0) + 1;
+    if(!ledgerOrder.includes(mod)) ledgerOrder.push(mod);
+    snap({cur:i, verdict:'Record ledger', vclass:'record',
+      sumHtml:`ledger[${mod}] = <b>${ledger[mod]}</b>`,
+      desc:`Today's clock slot <b>${mod}</b> goes into the ledger so future days can check against it.`,
+      line:'record', ledger:{...ledger}, ledgerOrder:[...ledgerOrder], count, doneUpTo:i-1, freshKey:mod});
+  }
+
+  snap({verdict:'Done', vclass:'hit',
+    sumHtml:`answer = <b>${count}</b>`,
+    desc: count>0 ? `Found ${count} subarray(s) divisible by k.` : 'No subarray is divisible by k.',
+    line:'return', ledger:{...ledger}, ledgerOrder:[...ledgerOrder], count, doneUpTo:nums.length-1});
+  return steps;
+}
+
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), ledgerTableEl=$('ledgerTable'), countVal=$('countVal'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot-${cls||'cursor'}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const {nums,k} = PRESETS[idx];
+  steps = buildSteps(nums, k);
+  cur=0;
+  rawLabel.textContent = `nums = [${nums.join(', ')}], k = ${k}`;
+  dimLabel.textContent = `n = ${nums.length}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  arrEl.innerHTML='';
+  s.nums.forEach((v,idx)=>{
+    const c=document.createElement('div');
+    c.className='cell';
+    if(idx<=s.doneUpTo) c.classList.add('done');
+    if(idx===s.cur){
+      c.classList.add(s.vclass==='hit' ? 'hit' : 'cursor');
+      const fl=document.createElement('div');
+      fl.className='flag';
+      fl.textContent='i';
+      c.appendChild(fl);
+    }
+    c.innerHTML += `<span class="idx">${idx}</span>${v}`;
+    arrEl.appendChild(c);
+  });
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  countVal.textContent = s.count;
+
+  if(s.ledgerOrder.length===0){
+    ledgerTableEl.innerHTML = '<tr><td class="ledger-empty">empty…</td></tr>';
+  } else {
+    const rows = s.ledgerOrder.map(key=>{
+      let cls='';
+      if(key===s.freshKey) cls='fresh';
+      else if(key===s.usedKey) cls='used';
+      return `<tr class="${cls}"><td>${key}</td><td>${s.ledger[key]}</td></tr>`;
+    }).join('');
+    ledgerTableEl.innerHTML = `<tr><th>slot</th><th>seen</th></tr>${rows}`;
+  }
+
+  let cls='cursor';
+  if(s.vclass==='hit') cls='hit';
+  else if(s.vclass==='need') cls='need';
+  else if(s.vclass==='record') cls='record';
+  renderCode(s.line, cls);
+
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

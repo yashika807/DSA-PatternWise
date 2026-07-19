@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contiguous Array · First-Photo Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --cursor:#B5453B;        /* red   – current scan index */
+    --cursor-fill:#F7E3E0;
+    --need:#2F6DB5;          /* blue  – "seen this balance before" lookup, no improvement */
+    --need-fill:#E3EEFA;
+    --record:#C67A00;        /* amber – first-seen photo taken */
+    --record-fill:#FBEFD6;
+    --hit:#2E7D57;           /* green – jackpot: new max length found */
+    --hit-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(28px,5vw,44px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--cursor);}
+  .sub{color:var(--ink-soft);max-width:70ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:30px 22px 12px;}
+  .arr-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .arr{
+    display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+    position:relative;padding-top:34px;
+  }
+  .cell{
+    position:relative;
+    width:56px;height:56px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:19px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell .idx{
+    position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+    font-size:10px;font-weight:500;color:var(--ink-soft);
+  }
+  .cell.span{background:var(--hit-fill);border-color:var(--hit);color:var(--hit);}
+  .cell.cursor{background:var(--cursor-fill);border-color:var(--cursor);color:var(--cursor);transform:translateY(-3px);}
+  .cell.hit{background:var(--hit-fill);border-color:var(--hit);color:var(--hit);transform:translateY(-3px);}
+  .cell.done{opacity:.55;}
+
+  .flag{
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+    background:var(--cursor);color:#fff;
+  }
+  .flag.hit{background:var(--hit);}
+
+  .readout{
+    margin:8px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.need{background:var(--need-fill);color:var(--need);}
+  .verdict.record{background:var(--record-fill);color:var(--record);}
+  .verdict.hit{background:var(--hit-fill);color:var(--hit);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.cursor{background:var(--cursor-fill);color:var(--cursor);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:15px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  /* Ledger (hashmap of first-seen indices) table */
+  .ledger-wrap{
+    padding:14px 18px 20px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .ledger-head{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .ledger-count{
+    font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--ink);
+    background:var(--hit-fill);color:var(--hit);padding:3px 9px;border-radius:6px;font-weight:700;
+  }
+  table.ledger{
+    width:100%;border-collapse:collapse;font-family:"JetBrains Mono",monospace;font-size:12.5px;
+  }
+  table.ledger th{
+    text-align:left;color:var(--ink-soft);font-weight:500;padding:4px 8px;
+    border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  }
+  table.ledger td{padding:5px 8px;border-bottom:1px dashed var(--line);color:var(--ink);}
+  table.ledger tr.fresh td{background:var(--record-fill);}
+  table.ledger tr.used td{background:var(--hit-fill);}
+  .ledger-empty{color:var(--ink-soft);font-size:12.5px;font-style:italic;padding:6px 8px;}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-cursor{background:var(--cursor-fill);}
+  pre.code .ln.hot-need{background:var(--need-fill);}
+  pre.code .ln.hot-record{background:var(--record-fill);}
+  pre.code .ln.hot-hit{background:var(--hit-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.cursor{background:var(--cursor-fill);border-color:var(--cursor);}
+  .sw.need{background:var(--need-fill);border-color:var(--need);}
+  .sw.record{background:var(--record-fill);border-color:var(--record);}
+  .sw.hit{background:var(--hit-fill);border-color:var(--hit);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{width:46px;height:46px;font-size:16px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Prefix-Sum · HashMap · LeetCode 525 · Medium</div>
+    <h1>Contiguous <span class="n">Array</span></h1>
+    <p class="sub">Treat every <code>0</code> as <code>-1</code> and every <code>1</code> as <code>+1</code>, then walk the
+    array keeping a running <b>balance</b>. The <b style="color:var(--record)">ledger</b> stores only the
+    <b>first index</b> each balance was ever seen — a "photo," never overwritten. Whenever the same balance
+    reappears, the gap since that first photo is a zero-sum stretch: equal zeros and ones.
+    <b style="color:var(--hit)">Track the longest such gap.</b></p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Prefix Sum + HashMap</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[0,1,0,0,1,1,0]</button>
+    <button class="chip" data-preset="1">[0,1]</button>
+    <button class="chip" data-preset="2">[0,1,0]</button>
+    <button class="chip" data-preset="3">[1,1,1,0]</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>The Array (scan left → right)</span><span id="dimLabel">n = 7</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">nums = [0, 1, 0, 0, 1, 1, 0]</div>
+        <div class="arr" id="arr"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="ledger-wrap">
+        <div class="ledger-head">
+          <span>Ledger — balance → first index seen</span>
+          <span class="ledger-count">maxLen = <b id="countVal">0</b></span>
+        </div>
+        <table class="ledger" id="ledgerTable"></table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw cursor"></i> current index — update balance</span>
+    <span><i class="sw record"></i> first time this balance appears — take a photo</span>
+    <span><i class="sw need"></i> seen before, but not a new longest</span>
+    <span><i class="sw hit"></i> jackpot — new longest zero-sum stretch</span>
+  </div>
+
+  <p class="foot">
+    Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+const CODE_LINES = [
+  {t:'<span class="kw">class</span> Solution {', id:null},
+  {t:'  <span class="kw">public</span> <span class="kw">int</span> <span class="fn">findMaxLength</span>(<span class="kw">int</span>[] nums) {', id:null},
+  {t:'    Map&lt;Integer,Integer&gt; firstSeen = <span class="kw">new</span> HashMap&lt;&gt;();', id:'init'},
+  {t:'    firstSeen.put(0, -1);      <span class="cmt">// balance 0, "before index 0"</span>', id:'init0'},
+  {t:'', id:null},
+  {t:'    <span class="kw">int</span> balance = 0, maxLen = 0;', id:'initvars'},
+  {t:'', id:null},
+  {t:'    <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; nums.length; i++) {', id:'for'},
+  {t:'      balance += (nums[i] == 1) ? 1 : -1;   <span class="cmt">// 0 → -1 trick</span>', id:'balance'},
+  {t:'', id:null},
+  {t:'      <span class="kw">if</span> (firstSeen.containsKey(balance)) {', id:'check'},
+  {t:'        maxLen = Math.max(maxLen, i - firstSeen.get(balance));', id:'maxupdate'},
+  {t:'      } <span class="kw">else</span> {', id:null},
+  {t:'        firstSeen.put(balance, i);   <span class="cmt">// first photo of this balance</span>', id:'record'},
+  {t:'      }', id:null},
+  {t:'    }', id:null},
+  {t:'', id:null},
+  {t:'    <span class="kw">return</span> maxLen;', id:'return'},
+  {t:'  }', id:null},
+  {t:'}', id:null},
+];
+
+const PRESETS = [
+  {nums:[0,1,0,0,1,1,0]},
+  {nums:[0,1]},
+  {nums:[0,1,0]},
+  {nums:[1,1,1,0]},
+];
+
+function buildSteps(nums){
+  const steps = [];
+  const snap = (o)=>steps.push(Object.assign({
+    nums, cur:-1, verdict:'', vclass:'info', sumHtml:'', desc:'',
+    line:null, ledger:{}, ledgerOrder:[], maxLen:0, doneUpTo:-1,
+    freshKey:null, usedKey:null, spanStart:null, spanEnd:null,
+  }, o));
+
+  const ledger = {0:-1};
+  const ledgerOrder = [0];
+  let balance = 0, maxLen = 0;
+  let bestStart = null, bestEnd = null;
+
+  snap({verdict:'Init', vclass:'info',
+    sumHtml:`firstSeen &larr; <b>{0: -1}</b>`,
+    desc:'Before any element: balance is 0, "seen" at index -1 (an imaginary spot before the array starts).',
+    line:'init0', ledger:{...ledger}, ledgerOrder:[...ledgerOrder]});
+
+  for(let i=0;i<nums.length;i++){
+    const bit = nums[i];
+    const delta = bit===1 ? 1 : -1;
+    balance += delta;
+    snap({cur:i, verdict:'Update balance', vclass:'cursor',
+      sumHtml:`balance += (nums[${i}]==1 ? +1 : -1) &rarr; balance += <b>${delta>0?'+1':'-1'}</b> &rarr; balance = <b>${balance}</b>`,
+      desc:`Index ${i} holds ${bit} &rarr; treated as ${delta>0?'+1':'-1'}. Running balance updated.`,
+      line:'balance', ledger:{...ledger}, ledgerOrder:[...ledgerOrder], maxLen, doneUpTo:i-1,
+      spanStart:bestStart, spanEnd:bestEnd});
+
+    if(Object.prototype.hasOwnProperty.call(ledger, balance)){
+      const j = ledger[balance];
+      const candidate = i - j;
+      const improved = candidate > maxLen;
+      if(improved){ maxLen = candidate; bestStart = j+1; bestEnd = i; }
+      snap({cur:i, verdict: improved ? 'JACKPOT · new longest' : 'Seen before · no improvement', vclass: improved ? 'hit' : 'need',
+        sumHtml:`firstSeen.get(${balance}) = <b>${j}</b> &nbsp;&rarr;&nbsp; candidate length = ${i} &minus; ${j} = <b>${candidate}</b>`,
+        desc: improved
+          ? `Balance <b>${balance}</b> was first seen at index ${j}. Everything from index ${j+1} to ${i} nets to zero — equal zeros and ones. New maxLen = <b>${maxLen}</b>.`
+          : `Balance <b>${balance}</b> was first seen at index ${j} (candidate length ${candidate}), but that's not longer than the current best (<b>${maxLen}</b>).`,
+        line:'maxupdate', ledger:{...ledger}, ledgerOrder:[...ledgerOrder], maxLen, doneUpTo:i-1,
+        usedKey:balance, spanStart: improved ? bestStart : null, spanEnd: improved ? bestEnd : null});
+    } else {
+      ledger[balance] = i;
+      ledgerOrder.push(balance);
+      snap({cur:i, verdict:'First time · take photo', vclass:'record',
+        sumHtml:`firstSeen.put(${balance}, ${i})`,
+        desc:`Balance <b>${balance}</b> has never appeared before — save index ${i} as its first photo.`,
+        line:'record', ledger:{...ledger}, ledgerOrder:[...ledgerOrder], maxLen, doneUpTo:i-1,
+        freshKey:balance, spanStart:bestStart, spanEnd:bestEnd});
+    }
+  }
+
+  snap({verdict:'Done', vclass:'hit',
+    sumHtml:`answer = <b>${maxLen}</b>`,
+    desc: maxLen>0
+      ? `Longest zero-sum stretch is nums[${bestStart}..${bestEnd}] — length ${maxLen}, equal zeros and ones.`
+      : 'No balanced subarray exists.',
+    line:'return', ledger:{...ledger}, ledgerOrder:[...ledgerOrder], maxLen, doneUpTo:nums.length-1,
+    spanStart:bestStart, spanEnd:bestEnd});
+  return steps;
+}
+
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), ledgerTableEl=$('ledgerTable'), countVal=$('countVal'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot-${cls||'cursor'}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const {nums} = PRESETS[idx];
+  steps = buildSteps(nums);
+  cur=0;
+  rawLabel.textContent = `nums = [${nums.join(', ')}]`;
+  dimLabel.textContent = `n = ${nums.length}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  arrEl.innerHTML='';
+  s.nums.forEach((v,idx)=>{
+    const c=document.createElement('div');
+    c.className='cell';
+    const inSpan = s.spanStart!==null && s.spanEnd!==null && idx>=s.spanStart && idx<=s.spanEnd;
+    if(inSpan) c.classList.add('span');
+    if(idx<=s.doneUpTo && !inSpan) c.classList.add('done');
+    if(idx===s.cur){
+      c.classList.remove('span','done');
+      c.classList.add(s.vclass==='hit' ? 'hit' : 'cursor');
+      const fl=document.createElement('div');
+      fl.className='flag'+(s.vclass==='hit' ? ' hit' : '');
+      fl.textContent='i';
+      c.appendChild(fl);
+    }
+    c.innerHTML += `<span class="idx">${idx}</span>${v}`;
+    arrEl.appendChild(c);
+  });
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  countVal.textContent = s.maxLen;
+
+  if(s.ledgerOrder.length===0){
+    ledgerTableEl.innerHTML = '<tr><td class="ledger-empty">empty…</td></tr>';
+  } else {
+    const rows = s.ledgerOrder.map(key=>{
+      let cls='';
+      if(key===s.freshKey) cls='fresh';
+      else if(key===s.usedKey) cls='used';
+      return `<tr class="${cls}"><td>${key}</td><td>${s.ledger[key]}</td></tr>`;
+    }).join('');
+    ledgerTableEl.innerHTML = `<tr><th>balance</th><th>first idx</th></tr>${rows}`;
+  }
+
+  let cls='cursor';
+  if(s.vclass==='hit') cls='hit';
+  else if(s.vclass==='need') cls='need';
+  else if(s.vclass==='record') cls='record';
+  renderCode(s.line, cls);
+
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
