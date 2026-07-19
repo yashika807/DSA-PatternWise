@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 53 · Maximum Subarray — Dry Run Debugger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16202B;
+    --paper:#E7EAED;
+    --panel:#FCFDFE;
+    --line:#D4DAE0;
+    --muted:#5C6B7A;
+    --blue:#1E6FB8;        /* curSum (running) */
+    --blue-soft:rgba(30,111,184,.13);
+    --blue-ring:rgba(30,111,184,.45);
+    --green:#0E8F63;       /* maxSum / answer */
+    --green-soft:rgba(14,143,99,.14);
+    --green-ring:rgba(14,143,99,.45);
+    --amber:#C77800;       /* current i */
+    --amber-soft:rgba(199,120,0,.16);
+    --red:#C0392B;         /* restart signal */
+    --red-soft:rgba(192,57,43,.13);
+    --shadow:0 1px 2px rgba(22,32,43,.06),0 8px 24px rgba(22,32,43,.07);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      linear-gradient(0deg,rgba(22,32,43,.02),rgba(22,32,43,.02)),
+      var(--paper);
+    background-image:
+      linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:26px 26px;
+    background-position:center;
+    color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding:24px 16px 64px;
+  }
+  .wrap{max-width:1120px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  header.top{margin-bottom:22px}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+  h1{
+    font-family:"Space Grotesk",sans-serif;font-weight:700;
+    font-size:clamp(26px,4.4vw,42px);line-height:1.05;margin:0 0 8px;
+    letter-spacing:-.02em;
+  }
+  h1 .em{color:var(--green)}
+  .sub{color:var(--muted);max-width:64ch;font-size:15px}
+  .sub code{font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--blue-soft);color:var(--blue);padding:1px 6px;border-radius:5px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .meta span{
+    font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);
+    border:1px solid var(--line);background:var(--panel);padding:4px 10px;border-radius:999px;
+  }
+  .meta span b{color:var(--ink)}
+
+  /* ---------- input bar ---------- */
+  .inputbar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;box-shadow:var(--shadow);margin:22px 0 18px;
+  }
+  .inputbar label{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);letter-spacing:.04em}
+  #arrayInput{
+    flex:1 1 240px;min-width:180px;font-family:"JetBrains Mono",monospace;font-size:14px;
+    padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);
+  }
+  #arrayInput:focus{outline:2px solid var(--blue-ring);outline-offset:1px;border-color:var(--blue)}
+  .btn{
+    font-family:"Inter",sans-serif;font-weight:600;font-size:13px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 14px;border-radius:9px;transition:transform .08s ease,background .15s ease,border-color .15s ease;
+  }
+  .btn:hover{border-color:var(--ink)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn.primary:hover{background:#0c141d}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .presets .plabel{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted)}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;cursor:pointer;
+    border:1px dashed var(--line);background:transparent;color:var(--muted);
+    padding:6px 10px;border-radius:20px;transition:all .15s ease;
+  }
+  .chip:hover{border-style:solid;color:var(--ink);border-color:var(--ink)}
+  .chip.on{border-style:solid;color:#fff;background:var(--ink);border-color:var(--ink)}
+  .err{color:var(--red);font-size:12px;font-family:"JetBrains Mono",monospace;flex-basis:100%;display:none}
+  .err.show{display:block}
+
+  /* ---------- main grid ---------- */
+  .grid{display:grid;grid-template-columns:1.28fr .92fr;gap:16px}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px 16px 18px;
+  }
+  .card h2{
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px;font-weight:500;display:flex;align-items:center;gap:8px;
+  }
+  .card h2 .k{width:6px;height:6px;border-radius:2px;display:inline-block}
+
+  /* ---------- array cells ---------- */
+  .phase{
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;
+    background:var(--amber-soft);border:1px solid rgba(199,120,0,.3);color:#8a5400;
+    display:inline-block;padding:4px 10px;border-radius:7px;margin-bottom:14px;font-weight:500;
+  }
+  .rowlabel{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.05em;
+    display:flex;align-items:center;gap:7px;margin:0 0 7px;font-weight:500;
+  }
+  .rowlabel .k{width:9px;height:9px;border-radius:3px}
+  .rowlabel .val{margin-left:auto;font-weight:700;font-size:13px}
+  .cells{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+  .cell{
+    position:relative;min-width:44px;flex:0 0 auto;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:1.5px solid var(--line);border-radius:9px;background:#fff;
+    padding:7px 8px 5px;transition:all .18s ease;
+  }
+  .cell .v{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:15px;line-height:1}
+  .cell .idx{font-family:"JetBrains Mono",monospace;font-size:9.5px;color:var(--muted);margin-top:3px}
+  .cell.cur{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-soft)}
+  .cell.cur::after{
+    content:"i";position:absolute;top:-9px;right:-8px;
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;color:#fff;background:var(--amber);
+    width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .cell.curwin{background:var(--blue-soft);border-color:var(--blue-ring)}
+  .cell.bestwin{box-shadow:inset 0 -3px 0 var(--green)}
+  .cell.dimmed{opacity:.35}
+  .divider{height:1px;background:var(--line);margin:16px 0}
+
+  /* ---------- possibility box ---------- */
+  .possib{margin-top:4px}
+  .possib .ptitle{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:9px;letter-spacing:.04em}
+  .cands{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch}
+  @media(max-width:520px){.cands{grid-template-columns:1fr}}
+  .cand{
+    border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;
+    transition:all .18s ease;position:relative;
+  }
+  .cand .clab{font-size:11.5px;color:var(--muted);margin-bottom:6px;line-height:1.35}
+  .cand .cexpr{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink);margin-bottom:8px}
+  .cand .cval{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:20px}
+  .cand.win{border-color:var(--green);background:var(--green-soft);box-shadow:0 0 0 3px var(--green-soft)}
+  .cand.win .cval{color:var(--green)}
+  .cand.win::after{
+    content:"✓ jeeta";position:absolute;top:-10px;right:10px;font-family:"JetBrains Mono",monospace;
+    font-size:10px;font-weight:700;color:#fff;background:var(--green);padding:2px 7px;border-radius:6px;
+  }
+  .cand.lose{opacity:.6}
+  .vs{display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk";font-weight:700;color:var(--muted);font-size:13px}
+  .possib.hidden{display:none}
+  .possib-idle{font-size:13px;color:var(--muted);padding:6px 0}
+
+  /* ---------- code panel ---------- */
+  .code{
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.85;
+    background:#0F1A24;border-radius:11px;padding:14px 6px 14px 0;overflow-x:auto;color:#B7C4D0;
+  }
+  .code .ln{display:flex;padding:0 14px 0 0;white-space:pre;transition:background .18s ease}
+  .code .ln .no{width:34px;text-align:right;padding-right:14px;color:#4A5C6E;flex:0 0 auto;user-select:none}
+  .code .ln.active{background:rgba(199,120,0,.16)}
+  .code .ln.active .no{color:var(--amber)}
+  .code .kw{color:#7FB3E0}
+  .code .fn{color:#E0B84B}
+  .code .nm{color:#E6ECF2}
+  .code .cm{color:#5D7086;font-style:italic}
+
+  /* ---------- state readouts ---------- */
+  .states{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .stbox{
+    border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;transition:all .2s ease;
+  }
+  .stbox .name{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:4px}
+  .stbox .num{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:24px;line-height:1}
+  .stbox.b-cur .name{color:var(--blue)} .stbox.b-cur .num{color:var(--blue)}
+  .stbox.b-max{border-color:var(--green);background:var(--green-soft)} .stbox.b-max .name{color:var(--green)} .stbox.b-max .num{color:var(--green)}
+  .stbox.flash{animation:flash .6s ease}
+  @keyframes flash{0%{box-shadow:0 0 0 0 var(--amber)}40%{box-shadow:0 0 0 4px var(--amber-soft)}100%{box-shadow:0 0 0 0 transparent}}
+
+  /* ---------- narrative ---------- */
+  .narr{
+    grid-column:1/-1;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--green);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 18px;
+  }
+  .narr .ntag{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:6px}
+  .narr .ntext{font-size:14.5px;color:var(--ink)}
+  .narr .ntext b{color:var(--ink)}
+  .narr .ntext .hl-b{color:var(--blue);font-weight:600}
+  .narr .ntext .hl-g{color:var(--green);font-weight:700}
+  .narr .ntext .hl-r{color:var(--red);font-weight:600}
+
+  /* ---------- transport ---------- */
+  .transport{
+    grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:12px 14px;
+  }
+  .transport .step-count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);margin-left:auto}
+  .progress{flex-basis:100%;height:5px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:2px}
+  .progress .bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--green));width:0;transition:width .2s ease}
+  .btn.big{padding:10px 16px;font-size:14px}
+  .btn.big.play{min-width:96px}
+  .speed{display:flex;align-items:center;gap:6px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted)}
+  .speed input{accent-color:var(--green)}
+
+  .legend{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:16px;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);padding:2px 4px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend .k{width:11px;height:11px;border-radius:3px;display:inline-block}
+  kbd{font-family:"JetBrains Mono",monospace;font-size:10px;background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--muted)}
+
+  footer{color:var(--muted);font-family:"JetBrains Mono",monospace;font-size:11px;text-align:center;margin-top:24px}
+
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow"><span class="dot"></span>LeetCode 53 · Kadane's Classic Debugger</div>
+    <h1>Extend karu ya restart?<br><span class="em">Maximum Subarray.</span></h1>
+    <p class="sub">Har index pe ek hi sawaal: <code>curSum</code> ko aage badhaao ya yahin se naya subarray shuru karo. Neeche array daalo, phir <b>Next</b> dabate jao — har line pe <code>curSum</code> aur <code>maxSum</code> live update hote dikhenge.</p>
+    <div class="meta">
+      <span>Time <b>O(n)</b></span>
+      <span>Space <b>O(1)</b></span>
+      <span>Pattern <b>Kadane's Algorithm</b></span>
+    </div>
+  </header>
+
+  <div class="inputbar">
+    <label for="arrayInput">nums =</label>
+    <input id="arrayInput" type="text" value="-2, 1, -3, 4, -1, 2, 1, -5, 4" spellcheck="false" aria-label="Array input, comma separated integers">
+    <button class="btn primary" id="loadBtn">Load</button>
+    <div class="presets">
+      <span class="plabel">examples:</span>
+      <button class="chip" data-arr="-2,1,-3,4,-1,2,1,-5,4">[-2,1,-3,4,-1,2,1,-5,4]</button>
+      <button class="chip" data-arr="1">[1]</button>
+      <button class="chip" data-arr="5,4,-1,7,8">[5,4,-1,7,8]</button>
+      <button class="chip" data-arr="-3,-2,-5">[-3,-2,-5] (all-negative)</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="grid">
+
+    <!-- LEFT: visualization -->
+    <div class="card" id="vizCard">
+      <h2><span class="k" style="background:var(--amber)"></span>Array &amp; running state</h2>
+      <div class="phase" id="phase">Ready</div>
+
+      <div class="rowlabel" style="color:var(--ink)">
+        <span class="k" style="background:var(--blue)"></span>nums
+      </div>
+      <div class="cells" id="masterCells"></div>
+
+      <div class="divider"></div>
+
+      <div class="possib" id="possib">
+        <div class="ptitle" id="possibTitle">is line pe do candidates:</div>
+        <div class="cands" id="candsWrap">
+          <div class="cand" id="candA">
+            <div class="clab" id="candALab"></div>
+            <div class="cexpr" id="candAExpr"></div>
+            <div class="cval" id="candAVal"></div>
+          </div>
+          <div class="vs">vs</div>
+          <div class="cand" id="candB">
+            <div class="clab" id="candBLab"></div>
+            <div class="cexpr" id="candBExpr"></div>
+            <div class="cval" id="candBVal"></div>
+          </div>
+        </div>
+        <div class="possib-idle" id="possibIdle" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: code + state -->
+    <div class="card">
+      <h2><span class="k" style="background:#E0B84B"></span>Code · active line highlighted</h2>
+      <div class="code" id="code"></div>
+
+      <div class="states">
+        <div class="stbox b-cur" id="st-cur"><div class="name">curSum</div><div class="num" id="v-cur">–</div></div>
+        <div class="stbox b-max" id="st-max"><div class="name">maxSum (answer)</div><div class="num" id="v-max">–</div></div>
+      </div>
+    </div>
+
+    <!-- narrative -->
+    <div class="narr">
+      <div class="ntag" id="narrTag">Step</div>
+      <div class="ntext" id="narrText">Load karo aur Next dabao.</div>
+    </div>
+
+    <!-- transport -->
+    <div class="transport">
+      <button class="btn big" id="prevBtn">◀ Prev</button>
+      <button class="btn big play primary" id="playBtn">▶ Play</button>
+      <button class="btn big" id="nextBtn">Next ▶</button>
+      <button class="btn big" id="resetBtn">↺ Reset</button>
+      <div class="speed">speed
+        <input type="range" id="speed" min="250" max="1600" value="850" step="50">
+      </div>
+      <div class="step-count" id="stepCount">step 0 / 0</div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+    </div>
+
+    <div class="legend">
+      <span><span class="k" style="background:var(--blue)"></span>curSum window (running subarray)</span>
+      <span><span class="k" style="background:var(--green)"></span>maxSum (best-so-far subarray)</span>
+      <span><span class="k" style="background:var(--amber)"></span>current i</span>
+      <span>keys: <kbd>←</kbd> <kbd>→</kbd> step · <kbd>space</kbd> play</span>
+    </div>
+
+  </div>
+
+  <footer>Kadane's Pattern · LC 53 &nbsp;·&nbsp; curSum = max(nums[i], curSum+nums[i]) &nbsp;·&nbsp; maxSum = max(maxSum, curSum)</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   FRAME GENERATOR
+   Re-runs the exact Java algorithm and emits one frame per
+   code line, tracking the current running-window span and the
+   best-so-far span, plus which candidate wins each max().
+   ============================================================ */
+
+function generateFrames(a){
+  const frames = [];
+  const n = a.length;
+
+  let curSum = a[0];
+  let maxSum = a[0];
+  let curStart = 0;
+  let bestStart = 0, bestEnd = 0;
+
+  // ---- init frame ----
+  frames.push({
+    phase: "Init · loop se pehle",
+    lines: [3,4],
+    curSum, maxSum,
+    curSpan: [0,0], bestSpan: [0,0], i: 0,
+    possib: null,
+    idle: `Dono <b>curSum</b> aur <b>maxSum</b> ko <span class="hl-b">nums[0] = ${a[0]}</span> se seed kiya — <code>0</code> se nahi, warna all-negative array pe galat answer aata.`,
+    narrTag: "Setup",
+    narr: `Shuruaat: <span class="hl-b">curSum = maxSum = nums[0] = ${a[0]}</span>. Ab <b>i = 1</b> se loop chalega — <b>Next</b> dabao.`
+  });
+
+  for(let i=1;i<n;i++){
+    const num = a[i];
+
+    // ---------- line: curSum = max(num, curSum+num) ----------
+    const restart = num;
+    const extend = curSum + num;
+    const extendWins = extend >= restart;
+    curSum = Math.max(restart, extend);
+    if(!extendWins) curStart = i;
+
+    frames.push({
+      phase: `i = ${i} · curSum update`,
+      lines: [6],
+      curSum, maxSum,
+      curSpan: [curStart, i], bestSpan: [bestStart, bestEnd], i,
+      possib: {
+        title: "curSum — extend karu ya restart?",
+        a: { lab:"Restart yahin se", expr:`nums[i] = ${restart}`, val:restart, key:"a" },
+        b: { lab:"Purana curSum extend karo", expr:`curSum + nums[i] = ${extend}`, val:extend, key:"b" },
+        winner: extendWins ? "b" : "a"
+      },
+      narrTag: `i = ${i}`,
+      narr: extendWins
+        ? `<span class="hl-b">curSum</span> extend hua → <b>${curSum}</b>. Pichla curSum kaam ka tha, isliye <b>nums[${i}] = ${num}</b> ko usi mein jod diya.`
+        : `<span class="hl-r">Restart!</span> Pichla curSum le jaana bojh tha, isliye <b>index ${i}</b> se fresh subarray shuru → <span class="hl-b">curSum = ${curSum}</span>.`
+    });
+
+    // ---------- line: maxSum = max(maxSum, curSum) ----------
+    const oldMax = maxSum;
+    const improved = curSum > maxSum;
+    maxSum = Math.max(maxSum, curSum);
+    if(improved){ bestStart = curStart; bestEnd = i; }
+
+    frames.push({
+      phase: `i = ${i} · maxSum update`,
+      lines: [7],
+      curSum, maxSum,
+      curSpan: [curStart, i], bestSpan: [bestStart, bestEnd], i,
+      possib: {
+        title: "maxSum — ab tak ka best update karo",
+        a: { lab:"Purana maxSum", expr:`maxSum = ${oldMax}`, val:oldMax, key:"a" },
+        b: { lab:"Is index ka curSum", expr:`curSum = ${curSum}`, val:curSum, key:"b" },
+        winner: improved ? "b" : "a"
+      },
+      narrTag: `i = ${i}`,
+      narr: improved
+        ? `<span class="hl-g">maxSum upgrade hua → ${maxSum}</span>! Naya best subarray milta hai indices [${bestStart}..${bestEnd}] pe.`
+        : `maxSum <b>${maxSum}</b> hi raha — is index ka curSum (${curSum}) usse bada nahi tha.`
+    });
+  }
+
+  // ---------- final ----------
+  frames.push({
+    phase: "return maxSum · done ✓",
+    lines: [9],
+    curSum, maxSum,
+    curSpan: null, bestSpan: [bestStart, bestEnd], i: -1,
+    possib: null,
+    idle: `Poore array mein kahin bhi mila sabse bada running sum hi answer hai.`,
+    narrTag: "Answer",
+    narr: `Loop khatam. <span class="hl-g">return maxSum = ${maxSum}</span> — subarray [${bestStart}..${bestEnd}] hi maximum sum deta hai. ${n===1?`Single element tha, seedha nums[0].`:``}`
+  });
+
+  return frames;
+}
+
+/* ============================================================
+   CODE PANEL
+   ============================================================ */
+const CODE_LINES = [
+  [1,  `<span class="kw">class</span> <span class="fn">Solution</span> {`],
+  [2,  `&nbsp;&nbsp;<span class="kw">public</span> <span class="kw">int</span> <span class="fn">maxSubArray</span>(<span class="kw">int</span>[] nums) {`],
+  [3,  `&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> curSum = nums[<span class="nm">0</span>];`],
+  [4,  `&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">int</span> maxSum = nums[<span class="nm">0</span>];`],
+  [5,  `&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">1</span>; i &lt; nums.length; i++) {`],
+  [6,  `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curSum = <span class="fn">Math.max</span>(nums[i], curSum + nums[i]);`],
+  [7,  `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxSum = <span class="fn">Math.max</span>(maxSum, curSum);`],
+  [8,  `&nbsp;&nbsp;&nbsp;&nbsp;}`],
+  [9,  `&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> maxSum;`],
+  [10, `&nbsp;&nbsp;}`],
+  [11, `}`],
+];
+
+function buildCode(){
+  $('code').innerHTML = CODE_LINES.map(([n,html])=>
+    `<div class="ln" data-ln="${n}"><span class="no">${n}</span><span>${html}</span></div>`
+  ).join('');
+}
+function paintCode(lines){
+  [...$('code').children].forEach(el=>{
+    el.classList.toggle('active', lines.includes(+el.dataset.ln));
+  });
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const $ = id => document.getElementById(id);
+let nums = [];
+let frames = [];
+let idx = 0;
+let playing = false;
+let timer = null;
+
+function buildCells(container, arr){
+  container.innerHTML = '';
+  arr.forEach((v,i)=>{
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.innerHTML = `<span class="v">${v}</span><span class="idx">${i}</span>`;
+    container.appendChild(c);
+  });
+}
+
+function paintCells(curSpan, bestSpan, curIdx){
+  [...$('masterCells').children].forEach((cell,i)=>{
+    cell.classList.remove('curwin','bestwin','cur','dimmed');
+    if(curSpan && i>=curSpan[0] && i<=curSpan[1]) cell.classList.add('curwin');
+    if(bestSpan && i>=bestSpan[0] && i<=bestSpan[1]) cell.classList.add('bestwin');
+    if(i===curIdx) cell.classList.add('cur');
+    if(curIdx>=0 && i>curIdx) cell.classList.add('dimmed');
+  });
+}
+
+function renderPossib(p){
+  if(!p){
+    $('possib').querySelector('#candsWrap').style.display = 'none';
+    $('possibIdle').style.display = 'block';
+    return;
+  }
+  $('candsWrap').style.display = 'grid';
+  $('possibIdle').style.display = 'none';
+  $('possibTitle').textContent = p.title;
+  $('candALab').textContent = p.a.lab;
+  $('candAExpr').textContent = p.a.expr;
+  $('candAVal').textContent = p.a.val;
+  $('candBLab').textContent = p.b.lab;
+  $('candBExpr').textContent = p.b.expr;
+  $('candBVal').textContent = p.b.val;
+  $('candA').className = 'cand ' + (p.winner==='a' ? 'win':'lose');
+  $('candB').className = 'cand ' + (p.winner==='b' ? 'win':'lose');
+}
+
+function render(){
+  const f = frames[idx];
+  $('phase').textContent = f.phase;
+  paintCells(f.curSpan, f.bestSpan, f.i);
+
+  $('v-cur').textContent = f.curSum;
+  $('v-max').textContent = f.maxSum;
+
+  if(f.possib){
+    renderPossib(f.possib);
+  } else {
+    $('candsWrap').style.display = 'none';
+    $('possibIdle').style.display = 'block';
+    $('possibIdle').innerHTML = f.idle || '';
+  }
+
+  paintCode(f.lines);
+
+  $('narrTag').textContent = f.narrTag;
+  $('narrText').innerHTML = f.narr;
+
+  $('stepCount').textContent = `step ${idx} / ${frames.length-1}`;
+  $('bar').style.width = (idx/(frames.length-1||1)*100) + '%';
+
+  $('prevBtn').disabled = idx===0;
+  $('nextBtn').disabled = idx===frames.length-1;
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+function go(to){
+  idx = Math.max(0, Math.min(frames.length-1, to));
+  render();
+  if(idx===frames.length-1) stop();
+}
+function next(){ if(idx<frames.length-1) go(idx+1); else stop(); }
+function prev(){ go(idx-1); }
+
+function play(){
+  if(idx>=frames.length-1) go(0);
+  playing = true;
+  $('playBtn').textContent = '⏸ Pause';
+  const tick = ()=>{
+    if(!playing) return;
+    if(idx>=frames.length-1){ stop(); return; }
+    next();
+    timer = setTimeout(tick, +$('speed').value);
+  };
+  timer = setTimeout(tick, +$('speed').value);
+}
+function stop(){
+  playing = false;
+  $('playBtn').textContent = '▶ Play';
+  if(timer) clearTimeout(timer);
+}
+function togglePlay(){ playing ? stop() : play(); }
+function reset(){ stop(); idx=0; render(); }
+
+/* ============================================================
+   LOAD
+   ============================================================ */
+function loadArray(arr){
+  stop();
+  nums = arr;
+  frames = generateFrames(nums);
+  idx = 0;
+  buildCells($('masterCells'), nums);
+  render();
+}
+
+function parseInput(str){
+  const parts = str.split(',').map(s=>s.trim()).filter(s=>s.length);
+  if(parts.length===0) throw 'Kuch numbers to daalo — jaise -2,1,-3,4';
+  if(parts.length>18) throw 'Bhai 18 tak hi — warna cells overflow ho jayenge 🙂';
+  return parts.map(p=>{
+    if(!/^-?\d+$/.test(p)) throw `"${p}" ek integer nahi hai`;
+    return parseInt(p,10);
+  });
+}
+
+/* ============================================================
+   WIRE UP
+   ============================================================ */
+document.querySelectorAll('.chip').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    $('err').classList.remove('show');
+    $('arrayInput').value = btn.dataset.arr;
+    loadArray(btn.dataset.arr.split(',').map(Number));
+  });
+});
+
+$('loadBtn').addEventListener('click',()=>{
+  try{
+    const arr = parseInput($('arrayInput').value);
+    document.querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));
+    $('err').classList.remove('show');
+    loadArray(arr);
+  }catch(e){ $('err').textContent = '⚠ '+e; $('err').classList.add('show'); }
+});
+$('arrayInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('loadBtn').click(); });
+
+$('nextBtn').addEventListener('click',next);
+$('prevBtn').addEventListener('click',prev);
+$('playBtn').addEventListener('click',togglePlay);
+$('resetBtn').addEventListener('click',reset);
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.key==='ArrowRight'){ e.preventDefault(); next(); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); prev(); }
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+/* init */
+buildCode();
+loadArray([-2,1,-3,4,-1,2,1,-5,4]);
+</script>
+</body>
+</html>
