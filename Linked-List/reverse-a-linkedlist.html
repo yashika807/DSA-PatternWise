@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reverse Linked List — Step Debugger | DSA-PatternWise</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#0e1119;
+    --bg2:#141926;
+    --panel:#171d2b;
+    --panel2:#1c2434;
+    --line:#26304a;
+    --ink:#e8edf7;
+    --ink-dim:#93a0bd;
+    --ink-faint:#5f6e8f;
+
+    --node:#212b41;
+    --node-edge:#33415f;
+
+    /* pointer identity colors */
+    --c-prev:#2dd4bf;
+    --c-curr:#a78bfa;
+    --c-next:#fbbf24;
+    --c-head:#7c8aa8;
+    --amber:#f5b544;
+
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --disp:'Space Grotesk',system-ui,sans-serif;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;background:
+     radial-gradient(1100px 600px at 82% -8%, #1a2338 0%, transparent 55%),
+     radial-gradient(900px 520px at -6% 108%, #16202f 0%, transparent 50%),
+     var(--bg);
+    color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:18px}
+  .brand{display:flex;flex-direction:column;gap:6px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);font-weight:600}
+  h1{font-size:30px;line-height:1.02;margin:0;font-weight:700;letter-spacing:-.01em}
+  h1 .k{color:var(--ink-dim);font-weight:600}
+  .sub{font-family:var(--mono);font-size:12.5px;color:var(--ink-dim)}
+  .repo{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);border:1px solid var(--line);
+     padding:8px 12px;border-radius:9px;background:var(--panel);white-space:nowrap}
+  .repo b{color:var(--c-prev)}
+
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+  .tag{font-family:var(--mono);font-size:10.5px;color:var(--ink-dim);background:var(--panel2);
+     border:1px solid var(--line);border-radius:7px;padding:4px 9px}
+  .tag b{color:var(--ink)}
+
+  /* controls */
+  .controls{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:6px 0 20px;
+     background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+  .group{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);margin-right:2px}
+  .preset{font-family:var(--mono);font-size:12px;color:var(--ink-dim);background:var(--panel2);
+     border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;transition:.15s;font-weight:500}
+  .preset:hover{border-color:var(--c-prev);color:var(--ink)}
+  .preset.active{background:rgba(45,212,191,.13);border-color:var(--c-prev);color:var(--c-prev)}
+  input#custom{font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--bg2);
+     border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:150px}
+  input#custom:focus{outline:none;border-color:var(--c-prev)}
+  .mini{font-family:var(--mono);font-size:11.5px;background:var(--amber);color:#20160a;border:none;
+     border-radius:8px;padding:7px 11px;cursor:pointer;font-weight:700}
+  .mini:hover{filter:brightness(1.07)}
+  .spacer{flex:1 1 auto}
+
+  .layout{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+  @media(max-width:930px){.layout{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .card .hd{display:flex;align-items:center;gap:9px;padding:11px 16px;border-bottom:1px solid var(--line);
+     font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px rgba(245,181,68,.15)}
+
+  /* ---- list stage ---- */
+  .stage{padding:24px 18px;min-height:230px;display:flex;flex-direction:column;justify-content:center;gap:22px;overflow-x:auto}
+  .chain{display:flex;align-items:flex-start;gap:2px;flex-wrap:nowrap;min-width:max-content}
+  .chain.detached{opacity:.96}
+  .chain-tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+     color:var(--c-next);border:1px dashed var(--c-next);border-radius:6px;padding:3px 7px;margin:22px 10px 0 0;align-self:flex-start;white-space:nowrap}
+
+  .cell{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:58px}
+  .badges{display:flex;flex-direction:column;gap:3px;align-items:center;min-height:40px;justify-content:flex-end}
+  .badge{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.03em;
+     padding:2px 6px;border-radius:5px;line-height:1.35;white-space:nowrap;position:relative}
+  .badge::after{content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);
+     border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor}
+  .badge.prev{color:var(--c-prev);background:rgba(45,212,191,.14);border:1px solid var(--c-prev)}
+  .badge.curr{color:var(--c-curr);background:rgba(167,139,250,.14);border:1px solid var(--c-curr)}
+  .badge.next{color:var(--c-next);background:rgba(251,191,36,.13);border:1px solid var(--c-next)}
+  .badge.head{color:var(--c-head);background:rgba(124,138,168,.13);border:1px solid var(--c-head)}
+
+  .nodebox{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+     font-family:var(--mono);font-weight:700;font-size:17px;background:var(--node);
+     border:1.5px solid var(--node-edge);color:var(--ink);transition:.2s}
+  .nodebox.grp{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,181,68,.16);background:#2a2410;color:#ffe0a3}
+  .arrow{font-family:var(--mono);color:var(--ink-faint);font-size:16px;margin-top:38px;padding:0 3px}
+  .nullcap{font-family:var(--mono);color:var(--ink-faint);font-size:12px;margin-top:36px;
+     border:1px dashed var(--line);border-radius:6px;padding:4px 7px}
+
+  /* ---- state panel ---- */
+  .state{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .var{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);
+     border-radius:10px;padding:9px 11px}
+  .swatch{width:11px;height:11px;border-radius:3px;flex:none}
+  .vname{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-dim)}
+  .vval{font-family:var(--mono);font-size:13px;font-weight:700;margin-left:auto;color:var(--ink)}
+  .vval.null{color:var(--ink-faint);font-weight:500}
+
+  /* ---- narration ---- */
+  .narr{padding:15px 16px 17px;border-top:1px solid var(--line)}
+  .step-title{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--amber);
+     letter-spacing:.02em;margin-bottom:7px;display:flex;align-items:center;gap:8px}
+  .step-title .num{background:var(--amber);color:#20160a;border-radius:5px;padding:1px 7px;font-size:11px}
+  .narr p{margin:0;font-size:14px;line-height:1.62;color:var(--ink);font-weight:500}
+  .narr code{font-family:var(--mono);font-size:12.5px;background:var(--bg2);border:1px solid var(--line);
+     padding:1px 5px;border-radius:5px;color:var(--c-prev)}
+
+  /* ---- code panel ---- */
+  .code-card{margin-top:18px}
+  pre.code{margin:0;padding:16px 6px 16px 0;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.66}
+  .cl{display:flex;padding:0 14px}
+  .cl .ln{width:30px;text-align:right;color:var(--ink-faint);user-select:none;padding-right:14px;flex:none}
+  .cl .ct{white-space:pre;color:#c6d0e6}
+  .cl.hl{background:linear-gradient(90deg,rgba(245,181,68,.16),rgba(245,181,68,.03));border-left:2px solid var(--amber);margin-left:-2px}
+  .kw{color:#7cc4ff}.ty{color:#5ee6c8}.fn{color:#c3a0ff}.nm{color:#ffd479}.cm{color:#5f6e8f;font-style:italic}
+
+  /* ---- footer nav ---- */
+  .nav{position:sticky;bottom:14px;margin-top:20px;display:flex;align-items:center;gap:12px;
+     background:rgba(20,25,38,.92);backdrop-filter:blur(9px);border:1px solid var(--line);
+     border-radius:14px;padding:11px 15px}
+  .btn{font-family:var(--mono);font-size:13px;font-weight:600;background:var(--panel2);color:var(--ink);
+     border:1px solid var(--line);border-radius:10px;padding:9px 16px;cursor:pointer;transition:.15s}
+  .btn:hover:not(:disabled){border-color:var(--c-prev);color:var(--c-prev)}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .btn.primary{background:var(--amber);color:#20160a;border-color:var(--amber);font-weight:700}
+  .btn.primary:hover{filter:brightness(1.07);color:#20160a}
+  .prog{flex:1;height:6px;background:var(--bg2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .prog>i{display:block;height:100%;background:linear-gradient(90deg,var(--c-prev),var(--amber));border-radius:99px;transition:.25s}
+  .count{font-family:var(--mono);font-size:12px;color:var(--ink-dim);white-space:nowrap}
+  .keys{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);white-space:nowrap}
+  @media(max-width:600px){.keys{display:none}}
+  kbd{font-family:var(--mono);background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;
+     border-radius:5px;padding:1px 5px;font-size:10px;color:var(--ink-dim)}
+
+  footer.note{margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--ink-faint);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <span class="eyebrow">Linked List · Pattern Debugger</span>
+      <h1>Reverse Linked List <span class="k">/ in-place 3-pointer walk</span></h1>
+      <span class="sub">LeetCode 206 · foundation pattern jo aage "reverse sublist" aur "reverse k-group" mein reuse hota hai</span>
+      <div class="meta">
+        <span class="tag">Time: <b>O(n)</b></span>
+        <span class="tag">Space: <b>O(1)</b></span>
+        <span class="tag">Pattern: <b>In-place reversal</b></span>
+      </div>
+    </div>
+    <span class="repo">yashika807 / <b>DSA-PatternWise</b></span>
+  </header>
+
+  <div class="controls">
+    <div class="group">
+      <span class="lbl">Input</span>
+      <button class="preset active" data-vals="1,2,3,4,5">1‑5 (odd)</button>
+      <button class="preset" data-vals="1,2,3,4,5,6">1‑6 (even)</button>
+      <button class="preset" data-vals="1">single</button>
+      <button class="preset" data-vals="">empty</button>
+    </div>
+    <div class="group">
+      <span class="lbl">Custom</span>
+      <input id="custom" placeholder="e.g. 8,3,5,9,1" />
+      <button class="mini" id="run">Run</button>
+    </div>
+    <span class="spacer"></span>
+    <span class="keys"><kbd>←</kbd><kbd>→</kbd> step · <kbd>Space</kbd> next · <kbd>R</kbd> reset</span>
+  </div>
+
+  <div class="layout">
+    <!-- LEFT: list + narration -->
+    <div class="card">
+      <div class="hd"><span class="dot"></span> List State &nbsp;·&nbsp; live pointers</div>
+      <div class="stage" id="stage"></div>
+      <div class="narr">
+        <div class="step-title"><span class="num" id="stepnum">0</span><span id="steptitle">—</span></div>
+        <p id="narration">—</p>
+      </div>
+    </div>
+
+    <!-- RIGHT: variables -->
+    <div class="card">
+      <div class="hd"><span class="dot" style="background:var(--c-prev);box-shadow:0 0 0 3px rgba(45,212,191,.15)"></span> Variables</div>
+      <div class="state" id="statepanel"></div>
+      <div class="narr" style="padding-top:13px">
+        <div class="step-title" style="color:var(--ink-dim)">legend</div>
+        <p style="font-family:var(--mono);font-size:11.5px;line-height:1.85;color:var(--ink-dim)">
+          Amber node = abhi jis node ka pointer palat rahe hain (<code>curr</code>).<br>
+          Alag chain = "already-reversed" hissa vs "abhi-tak-untouched" hissa — dono independent chains hain jab tak loop khatam nahi hota.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CODE -->
+  <div class="card code-card">
+    <div class="hd"><span class="dot" style="background:var(--c-curr);box-shadow:0 0 0 3px rgba(167,139,250,.15)"></span> Solution.java &nbsp;·&nbsp; highlighted line = current step</div>
+    <pre class="code" id="code"></pre>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <button class="btn" id="prev">‹ Prev</button>
+    <button class="btn primary" id="next">Next ›</button>
+    <button class="btn" id="reset">Reset</button>
+    <button class="btn" id="play">▶ Play</button>
+    <input id="speed" type="range" min="300" max="2000" step="100" value="900" style="width:90px" title="speed (ms/step)"/>
+    <div class="prog"><i id="progbar"></i></div>
+    <span class="count" id="count">0 / 0</span>
+  </div>
+
+  <footer class="note">Keyboard: <kbd>←</kbd> <kbd>→</kbd> step through · <kbd>Space</kbd> next · <kbd>R</kbd> reset · <kbd>P</kbd> play/pause</footer>
+
+</div>
+
+<script>
+/* ============================================================
+   The EXACT algorithm, instrumented. We run the real 3-pointer
+   reverseList() and record a snapshot at each step, so every
+   pointer badge is guaranteed to match real behaviour.
+   ============================================================ */
+
+const CODE = [
+ [1 ,'<span class="ty">public</span> ListNode <span class="fn">reverseList</span>(ListNode head) {'],
+ [2 ,'    ListNode prev = <span class="kw">null</span>;'],
+ [3 ,'    ListNode curr = head;'],
+ [4 ,'    <span class="kw">while</span> (curr != <span class="kw">null</span>) {'],
+ [5 ,'        ListNode next = curr.next;'],
+ [6 ,'        curr.next = prev;'],
+ [7 ,'        prev = curr;'],
+ [8 ,'        curr = next;'],
+ [9 ,'    }'],
+ [10,'    <span class="kw">return</span> prev;'],
+ [11,'}'],
+];
+
+function simulate(vals){
+  const nodes = vals.map((v,i)=>({id:i, val:v, next: (i<vals.length-1? i+1 : null)}));
+  const get = id => id==null ? null : nodes[id];
+  const V   = id => id==null ? null : nodes[id].val;
+  const steps = [];
+
+  let head = vals.length>0 ? 0 : null;
+  let prev=null, curr=null, nxt=null;
+
+  function snap(lines, title, narr, grp){
+    const links = {}; nodes.forEach(n => links[n.id] = n.next);
+    steps.push({
+      lines:[...lines], title, narr,
+      links,
+      ptr:{ head, prev, curr, next: nxt },
+      grp: grp ? [...grp] : []
+    });
+  }
+
+  snap([2,3], 'Setup', `prev = <code>null</code>, curr = head ${head==null?'(<code>null</code> — list khaali hai)':'= node <b>'+V(head)+'</b>'}. Loop tab tak chalega jab tak curr null na ho jaaye.`);
+
+  if(head==null){
+    snap([4], 'while(curr != null) → false', `curr shuru se hi <code>null</code> hai (empty list), loop ek baar bhi nahi chalta.`);
+    snap([10], 'return prev', `prev abhi bhi <code>null</code> hai → <b>null</b> hi return hota hai. Empty list ka reverse bhi empty hi hota hai. ✅`);
+    return {steps, vals};
+  }
+
+  curr = head;
+
+  while(curr!=null){
+    snap([4], 'while(curr != null) → true', `curr = node <b>${V(curr)}</b>, null nahi hai → loop body chalega.`, [curr]);
+
+    nxt = get(curr).next;
+    snap([5], 'next = curr.next', `next = <b>${nxt==null?'null':'node '+V(nxt)}</b>. Isse pehle bacha liya kyunki agli line mein curr.next overwrite hone wala hai — WA1 yahi bhoolta hai.`, [curr]);
+
+    get(curr).next = prev;
+    snap([6], 'curr.next = prev', `Node <b>${V(curr)}</b> ka arrow ab ${prev==null?'<code>null</code>':'node <b>'+V(prev)+'</b>'} ki taraf palat gaya. Yeh node ab "reversed" hisse ka naya head hai.`, [curr]);
+
+    prev = curr;
+    snap([7], 'prev = curr', `prev ab node <b>${V(prev)}</b> hai.`, [prev]);
+
+    curr = nxt;
+    snap([8], 'curr = next', curr==null
+        ? `curr = <code>null</code>. Agli baar while-check fail hoga → loop khatam.`
+        : `curr ab node <b>${V(curr)}</b> hai — agli iteration isi ko process karegi.`, prev!=null?[prev]:[]);
+  }
+
+  snap([4], 'while(curr != null) → false', `curr <code>null</code> ho gaya → loop exit.`);
+
+  const order=[]; let cur=prev, g=0; while(cur!=null && g<200){ order.push(V(cur)); cur=get(cur).next; g++; }
+  snap([10], 'return prev', `Ho gaya! prev hi naya head hai. Final list: <b>${order.join(' → ')} → null</b> ✅`);
+
+  return {steps, vals};
+}
+
+/* ---------------- rendering ---------------- */
+
+let SIM=null, idx=0, playing=false, playTimer=null;
+
+function computeChains(links, ptr){
+  const ids = Object.keys(links).map(Number);
+  if(ids.length===0) return [];
+  const indeg = {}; ids.forEach(i=>indeg[i]=0);
+  ids.forEach(i=>{ const nx=links[i]; if(nx!=null) indeg[nx]=(indeg[nx]||0)+1; });
+  let heads = ids.filter(i=>indeg[i]===0);
+  const eff = ptr.prev!=null ? ptr.prev : ptr.head;
+  heads.sort((a,b)=> a===eff ? -1 : b===eff ? 1 : a-b);
+  const seenAll=new Set();
+  const chains=[];
+  heads.forEach(h=>{
+    const c=[]; let cur=h; const local=new Set();
+    while(cur!=null && !local.has(cur)){ c.push(cur); local.add(cur); seenAll.add(cur); cur=links[cur]; }
+    chains.push(c);
+  });
+  ids.forEach(i=>{ if(!seenAll.has(i)) chains.push([i]); });
+  return chains;
+}
+
+const PTR_ORDER=['prev','head','curr','next'];
+const PTR_CLASS={prev:'prev',head:'head',curr:'curr',next:'next'};
+
+function render(){
+  const st = SIM.steps[idx];
+  const stage = document.getElementById('stage');
+  stage.innerHTML='';
+
+  if(SIM.vals.length===0){
+    const empty=document.createElement('div');
+    empty.style.fontFamily='var(--mono)'; empty.style.color='var(--ink-faint)'; empty.style.fontSize='13px';
+    empty.textContent='(empty list — head = null)';
+    stage.appendChild(empty);
+  } else {
+    const chains = computeChains(st.links, st.ptr);
+    const nodeVal = id => SIM.byId[id].val;
+    const grpSet = new Set(st.grp);
+
+    const ptrsOn = {};
+    PTR_ORDER.forEach(p=>{ const id=st.ptr[p]; if(id!=null){ (ptrsOn[id]=ptrsOn[id]||[]).push(p); } });
+
+    chains.forEach((chain, ci)=>{
+      const row=document.createElement('div');
+      row.className='chain'+(ci>0?' detached':'');
+      if(ci>0){
+        const tag=document.createElement('div');
+        tag.className='chain-tag';
+        tag.textContent='untouched / still-forward';
+        row.appendChild(tag);
+      }
+      chain.forEach((id)=>{
+        const cell=document.createElement('div'); cell.className='cell';
+        const badges=document.createElement('div'); badges.className='badges';
+        (ptrsOn[id]||[]).forEach(p=>{
+          const b=document.createElement('span'); b.className='badge '+PTR_CLASS[p]; b.textContent=p; badges.appendChild(b);
+        });
+        cell.appendChild(badges);
+        const box=document.createElement('div');
+        box.className='nodebox'+(grpSet.has(id)?' grp':'');
+        box.textContent=nodeVal(id);
+        cell.appendChild(box);
+        row.appendChild(cell);
+
+        const arrow=document.createElement('div'); arrow.className='arrow';
+        arrow.textContent='→';
+        row.appendChild(arrow);
+      });
+      const cap=document.createElement('div'); cap.className='nullcap'; cap.textContent='null';
+      row.appendChild(cap);
+      stage.appendChild(row);
+    });
+  }
+
+  // state panel
+  const sp=document.getElementById('statepanel'); sp.innerHTML='';
+  const varColor={prev:'--c-prev',curr:'--c-curr',next:'--c-next',head:'--c-head'};
+  ['prev','curr','next','head'].forEach(v=>{
+    const id=st.ptr[v];
+    const val = id==null ? 'null' : String(SIM.byId[id].val);
+    const el=document.createElement('div'); el.className='var';
+    el.innerHTML=`<span class="swatch" style="background:var(${varColor[v]})"></span>
+      <span class="vname">${v}</span>
+      <span class="vval ${id==null?'null':''}">${val}</span>`;
+    sp.appendChild(el);
+  });
+
+  document.getElementById('stepnum').textContent=idx;
+  document.getElementById('steptitle').textContent=st.title;
+  document.getElementById('narration').innerHTML=st.narr;
+
+  const hl=new Set(st.lines);
+  document.querySelectorAll('.cl').forEach(cl=>{
+    const n=+cl.dataset.line;
+    cl.classList.toggle('hl', hl.has(n));
+  });
+  const firstHl=[...hl][0];
+  if(firstHl){ const t=document.querySelector('.cl[data-line="'+firstHl+'"]'); if(t) t.scrollIntoView({block:'nearest'}); }
+
+  const total=SIM.steps.length;
+  document.getElementById('count').textContent=`${idx+1} / ${total}`;
+  document.getElementById('progbar').style.width=(total>1?(idx)/(total-1)*100:100)+'%';
+  document.getElementById('prev').disabled = idx===0;
+  document.getElementById('next').disabled = idx===total-1;
+  if(idx===total-1) stopPlay();
+}
+
+function buildCode(){
+  const pre=document.getElementById('code'); pre.innerHTML='';
+  CODE.forEach(([n,html])=>{
+    const div=document.createElement('div'); div.className='cl'; div.dataset.line=n;
+    div.innerHTML=`<span class="ln">${n}</span><span class="ct">${html||' '}</span>`;
+    pre.appendChild(div);
+  });
+}
+
+function load(vals){
+  const sim=simulate(vals);
+  sim.byId={}; sim.vals.forEach((v,i)=>sim.byId[i]={val:v});
+  SIM=sim; idx=0; render();
+}
+
+/* ---------------- controls ---------------- */
+document.getElementById('next').onclick=()=>{ if(idx<SIM.steps.length-1){idx++;render();} };
+document.getElementById('prev').onclick=()=>{ if(idx>0){idx--;render();} };
+document.getElementById('reset').onclick=()=>{ idx=0; stopPlay(); render(); };
+
+function stopPlay(){ playing=false; clearInterval(playTimer); document.getElementById('play').textContent='▶ Play'; }
+function startPlay(){
+  playing=true; document.getElementById('play').textContent='⏸ Pause';
+  const spd = +document.getElementById('speed').value;
+  playTimer = setInterval(()=>{
+    if(idx<SIM.steps.length-1){ idx++; render(); } else { stopPlay(); }
+  }, spd);
+}
+document.getElementById('play').onclick=()=>{ playing ? stopPlay() : startPlay(); };
+document.getElementById('speed').addEventListener('change',()=>{ if(playing){ stopPlay(); startPlay(); } });
+
+document.querySelectorAll('.preset').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.preset').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    stopPlay();
+    const raw=b.dataset.vals;
+    load(raw==='' ? [] : raw.split(',').map(Number));
+  };
+});
+function runCustom(){
+  const raw=document.getElementById('custom').value.trim();
+  document.querySelectorAll('.preset').forEach(x=>x.classList.remove('active'));
+  stopPlay();
+  if(!raw){ load([]); return; }
+  const vals=raw.split(/[\s,]+/).map(Number).filter(x=>!Number.isNaN(x));
+  load(vals);
+}
+document.getElementById('run').onclick=runCustom;
+document.getElementById('custom').addEventListener('keydown',e=>{ if(e.key==='Enter') runCustom(); });
+
+document.addEventListener('keydown',e=>{
+  if(e.target.id==='custom') return;
+  if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); if(idx<SIM.steps.length-1){idx++;render();} }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); if(idx>0){idx--;render();} }
+  else if(e.key==='r'||e.key==='R'){ idx=0; stopPlay(); render(); }
+  else if(e.key==='p'||e.key==='P'){ playing ? stopPlay() : startPlay(); }
+});
+
+buildCode();
+load([1,2,3,4,5]);
+</script>
+</body>
+</html>
