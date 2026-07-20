@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Insert Interval · 3-Phase Scan Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --anchor:#B5453B;
+    --anchor-fill:#F7E3E0;
+    --poor:#2F6DB5;
+    --poor-fill:#E3EEFA;
+    --rich:#C67A00;
+    --rich-fill:#FBEFD6;
+    --zero:#2E7D57;
+    --zero-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;}
+  h1{font-size:clamp(28px,5vw,44px);font-weight:700;letter-spacing:-.02em;margin:4px 0 10px;}
+  h1 .n{color:var(--anchor);}
+  .sub{color:var(--ink-soft);max-width:74ch;font-size:15px;}
+  .sub code{font-family:"JetBrains Mono",monospace;font-size:.9em;background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 11px;color:var(--ink-soft);}
+  .tag b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:12px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;}
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .stage{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:22px;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+
+  .board{padding:22px 20px 8px;}
+  .arr-label{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);margin-bottom:12px;letter-spacing:.03em;word-break:break-word;}
+
+  .tl-block{margin-bottom:14px;}
+  .tl-title{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;}
+  .tl-area{position:relative;background:var(--rail);border:1px solid var(--line);border-radius:10px;padding:10px 14px 26px;}
+  .tl-row{position:relative;height:34px;margin-bottom:4px;}
+  .tl-axis{position:relative;height:20px;margin-top:2px;}
+  .tl-axis .tick{position:absolute;top:0;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-soft);}
+  .tl-axis .tick::before{content:'';position:absolute;left:50%;top:-10px;width:1px;height:8px;background:var(--line);}
+
+  .ibar{
+    position:absolute;top:2px;height:28px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:700;
+    border:2px solid var(--cell-line);background:var(--cell-fill);color:var(--ink-soft);
+    transition:background .2s,border-color .2s,color .2s,opacity .2s,transform .2s;
+    white-space:nowrap;overflow:hidden;padding:0 6px;
+  }
+  .ibar.pending{background:#fff;border-color:var(--cell-line);color:var(--ink-soft);}
+  .ibar.current{background:var(--rich-fill);border-color:var(--rich);color:var(--rich);transform:translateY(-2px);box-shadow:0 3px 10px -4px rgba(198,122,0,.55);}
+  .ibar.absorbed{background:var(--anchor-fill);border-color:var(--anchor);color:var(--anchor);opacity:.55;}
+  .ibar.copied{background:var(--poor-fill);border-color:var(--poor);color:var(--poor);}
+  .ibar .tag2{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:var(--ink-soft);}
+
+  .newbar{
+    position:absolute;top:2px;height:28px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:700;
+    border:2px dashed var(--anchor);background:var(--anchor-fill);color:var(--anchor);
+    transition:left .25s,width .25s,background .2s,border-color .2s,opacity .2s;
+  }
+  .newbar.merging{border-style:solid;box-shadow:0 3px 10px -4px rgba(181,69,59,.55);}
+  .newbar.finalized{border-style:solid;background:var(--zero-fill);border-color:var(--zero);color:var(--zero);}
+  .newbar.done{opacity:.3;}
+
+  .obar{
+    position:absolute;top:2px;height:28px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:700;
+    border:2px solid var(--zero);background:var(--zero-fill);color:var(--zero);
+    transition:left .25s,width .25s;
+  }
+
+  .readout{margin:10px 0 4px;padding:16px 18px;border-radius:12px;background:var(--rail);border:1px solid var(--line);min-height:100px;}
+  .verdict{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.04em;margin-bottom:8px;display:inline-block;padding:3px 9px;border-radius:6px;}
+  .verdict.poor{background:var(--poor-fill);color:var(--poor);}
+  .verdict.rich{background:var(--rich-fill);color:var(--rich);}
+  .verdict.zero{background:var(--zero-fill);color:var(--zero);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.anchor{background:var(--anchor-fill);color:var(--anchor);}
+  .sum-line{font-family:"JetBrains Mono",monospace;font-size:14.5px;color:var(--ink);margin:2px 0;}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .found{padding:14px 18px 20px;border-top:1px solid var(--line);margin-top:4px;}
+  .found-head{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;}
+  .trips{display:flex;gap:9px;flex-wrap:wrap;min-height:34px;}
+  .trip{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;background:var(--zero-fill);border:1.5px solid var(--zero);color:var(--zero);padding:6px 11px;border-radius:9px;animation:pop .35s ease;}
+  .trips .empty{color:var(--ink-soft);font-size:12.5px;font-style:italic;}
+  @keyframes pop{from{transform:scale(.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{margin:0;padding:18px 16px;font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;color:var(--ink);tab-size:2;}
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot{background:var(--poor-fill);}
+  pre.code .ln.hot-a{background:var(--anchor-fill);}
+  pre.code .ln.hot-z{background:var(--zero-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  button{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 15px;border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s,transform .05s;}
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+  .count b{color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.anchor{background:var(--anchor-fill);border-color:var(--anchor);}
+  .sw.poor{background:var(--poor-fill);border-color:var(--poor);}
+  .sw.rich{background:var(--rich-fill);border-color:var(--rich);}
+  .sw.zero{background:var(--zero-fill);border-color:var(--zero);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Merge Intervals · 3-Phase Scan · LeetCode 57 · Medium</div>
+    <h1>Insert <span class="n">Interval</span></h1>
+    <p class="sub">Calendar is already sorted &amp; non-overlapping. Slot in the <b style="color:var(--anchor)">new booking</b> with a single left→right scan:
+    copy everything <b style="color:var(--poor)">before</b> it, <b style="color:var(--anchor)">absorb</b> everything it overlaps, then copy everything <b style="color:var(--poor)">after</b> it. No re-sort needed.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; 3-Phase Linear Scan</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[[1,3],[6,9]] + [2,5]</button>
+    <button class="chip" data-preset="1">[[1,2],[3,5],[6,7],[8,10],[12,16]] + [4,8]</button>
+    <button class="chip" data-preset="2">[] + [5,7]  (empty)</button>
+    <button class="chip" data-preset="3">[[1,5]] + [2,3]  (contained)</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>Calendar Timeline</span><span id="dimLabel">n = 2</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">existing: [[1,3],[6,9]]  ·  newInterval: [2,5]</div>
+
+        <div class="tl-block">
+          <div class="tl-title">Existing calendar (sorted, non-overlapping)</div>
+          <div class="tl-area"><div id="inputRow" class="tl-row"></div><div class="tl-axis" id="axisTop"></div></div>
+        </div>
+
+        <div class="tl-block">
+          <div class="tl-title">New booking (merge window)</div>
+          <div class="tl-area"><div id="newRow" class="tl-row"></div><div class="tl-axis" id="axisMid"></div></div>
+        </div>
+
+        <div class="tl-block">
+          <div class="tl-title">Result</div>
+          <div class="tl-area"><div id="outputRow" class="tl-row"></div><div class="tl-axis" id="axisBottom"></div></div>
+        </div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found">
+        <div class="found-head">Result so far</div>
+        <div class="trips" id="trips"><span class="empty">none yet…</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll"><pre class="code" id="code"></pre></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw poor"></i> copied as-is (phase 1 / phase 3)</span>
+    <span><i class="sw anchor"></i> new booking / merge window</span>
+    <span><i class="sw rich"></i> existing interval currently examined</span>
+    <span><i class="sw zero"></i> finalized result</span>
+  </div>
+
+  <p class="foot">Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.</p>
+</div>
+
+<script>
+const CODE_LINES = [
+  {t:'<span class="kw">class</span> Solution {', id:null},
+  {t:'  <span class="kw">public</span> <span class="kw">int</span>[][] <span class="fn">insert</span>(<span class="kw">int</span>[][] intervals, <span class="kw">int</span>[] newInterval) {', id:null},
+  {t:'    List&lt;<span class="kw">int</span>[]&gt; result = <span class="kw">new</span> ArrayList&lt;&gt;();', id:null},
+  {t:'    <span class="kw">int</span> i = 0, n = intervals.length;', id:'initI'},
+  {t:'', id:null},
+  {t:'    <span class="cmt">// Phase 1: intervals ending strictly before newInterval starts</span>', id:null},
+  {t:'    <span class="kw">while</span> (i &lt; n &amp;&amp; intervals[i][1] &lt; newInterval[0]) {', id:'p1while'},
+  {t:'      result.add(intervals[i]);', id:'p1add'},
+  {t:'      i++;', id:null},
+  {t:'    }', id:null},
+  {t:'', id:null},
+  {t:'    <span class="cmt">// Phase 2: merge everything that overlaps newInterval</span>', id:null},
+  {t:'    <span class="kw">int</span> start = newInterval[0], end = newInterval[1];', id:'initSE'},
+  {t:'    <span class="kw">while</span> (i &lt; n &amp;&amp; intervals[i][0] &lt;= end) {', id:'p2while'},
+  {t:'      start = Math.min(start, intervals[i][0]);', id:'p2merge'},
+  {t:'      end = Math.max(end, intervals[i][1]);', id:'p2merge'},
+  {t:'      i++;', id:null},
+  {t:'    }', id:null},
+  {t:'    result.add(<span class="kw">new</span> <span class="kw">int</span>[]{start, end});', id:'p2add'},
+  {t:'', id:null},
+  {t:'    <span class="cmt">// Phase 3: everything remaining, untouched</span>', id:null},
+  {t:'    <span class="kw">while</span> (i &lt; n) {', id:'p3while'},
+  {t:'      result.add(intervals[i]);', id:'p3add'},
+  {t:'      i++;', id:null},
+  {t:'    }', id:null},
+  {t:'    <span class="kw">return</span> result.toArray(<span class="kw">new</span> <span class="kw">int</span>[result.size()][]);', id:'return'},
+  {t:'  }', id:null},
+  {t:'}', id:null},
+];
+
+const PRESETS = [
+  {intervals:[[1,3],[6,9]], newInterval:[2,5]},
+  {intervals:[[1,2],[3,5],[6,7],[8,10],[12,16]], newInterval:[4,8]},
+  {intervals:[], newInterval:[5,7]},
+  {intervals:[[1,5]], newInterval:[2,3]},
+];
+
+function makeScale(lo, hi){
+  const pad = Math.max(1, (hi-lo)*0.08) || 1;
+  const L = lo-pad, H = hi+pad;
+  return v => ((v-L)/(H-L))*100;
+}
+function niceTicks(lo, hi, count){
+  const ticks = [];
+  for(let i=0;i<count;i++) ticks.push(Math.round(lo + (hi-lo)*i/(count-1)));
+  return [...new Set(ticks)];
+}
+
+function buildSteps(intervals, newInterval){
+  const n = intervals.length;
+  const steps = [];
+  const existingStatus = new Array(n).fill('pending');
+  const result = [];
+  let newBlock = {start:newInterval[0], end:newInterval[1]};
+  let newStatus = 'raw';
+
+  const snap = (o)=>steps.push(Object.assign({
+    i:-1, existingStatus:[...existingStatus], newBlock:{...newBlock}, newStatus,
+    result: result.map(r=>({...r})),
+    verdict:'', vclass:'info', sumHtml:'', desc:'', line:null,
+  }, o));
+
+  snap({verdict:'Start', vclass:'info',
+    sumHtml:`existing = [${intervals.map(v=>`[${v[0]},${v[1]}]`).join(', ')}]  ·  newInterval = [${newInterval[0]}, ${newInterval[1]}]`,
+    desc:'Calendar already sorted & non-overlapping hai. Ek hi left-to-right scan mein 3 phases chalenge.',
+    line:'initI'});
+
+  let i = 0;
+  while (i < n && intervals[i][1] < newInterval[0]) {
+    snap({i, existingStatus:[...existingStatus], verdict:'Before newInterval', vclass:'poor',
+      sumHtml:`intervals[${i}][1]=${intervals[i][1]} &lt; newInterval[0]=${newInterval[0]}`,
+      desc:'Yeh booking newInterval shuru hone se pehle hi khatam ho jaati hai — copy as-is.', line:'p1while'});
+    result.push({start: intervals[i][0], end: intervals[i][1]});
+    existingStatus[i] = 'copied';
+    snap({i, existingStatus:[...existingStatus], result: result.map(r=>({...r})), verdict:'Copy as-is', vclass:'poor',
+      sumHtml:`result.add([${intervals[i][0]},${intervals[i][1]}])`,
+      desc:'No overlap possible — seedha result mein daal do.', line:'p1add'});
+    i++;
+  }
+
+  newStatus = 'merging';
+  snap({i, existingStatus:[...existingStatus], newStatus:'merging', verdict:'Init merge window', vclass:'anchor',
+    sumHtml:`start=${newBlock.start}, end=${newBlock.end}`,
+    desc:'newInterval ke apne bounds se merge window shuru karo.', line:'initSE'});
+
+  while (i < n && intervals[i][0] <= newBlock.end) {
+    snap({i, existingStatus:[...existingStatus], newStatus:'merging', newBlock:{...newBlock}, verdict:'Overlaps newInterval', vclass:'anchor',
+      sumHtml:`intervals[${i}][0]=${intervals[i][0]} &le; end=${newBlock.end}`,
+      desc:'Yeh booking merge window ko overlap karti hai — absorb karo.', line:'p2while'});
+    const before = {...newBlock};
+    newBlock.start = Math.min(newBlock.start, intervals[i][0]);
+    newBlock.end = Math.max(newBlock.end, intervals[i][1]);
+    existingStatus[i] = 'absorbed';
+    snap({i, existingStatus:[...existingStatus], newStatus:'merging', newBlock:{...newBlock}, verdict:'Absorb', vclass:'anchor',
+      sumHtml:`start=min(${before.start},${intervals[i][0]})=${newBlock.start}, end=max(${before.end},${intervals[i][1]})=${newBlock.end}`,
+      desc:'Merge window expand ho gaya.', line:'p2merge'});
+    i++;
+  }
+  result.push({...newBlock});
+  newStatus = 'finalized';
+  snap({i, existingStatus:[...existingStatus], newStatus:'finalized', newBlock:{...newBlock}, result: result.map(r=>({...r})),
+    verdict:'Insert merged block', vclass:'zero',
+    sumHtml:`result.add([${newBlock.start},${newBlock.end}])`,
+    desc:'Final merged newInterval result mein daal diya.', line:'p2add'});
+  newStatus = 'done';
+
+  while (i < n) {
+    snap({i, existingStatus:[...existingStatus], newStatus:'done', newBlock:{...newBlock}, result: result.map(r=>({...r})),
+      verdict:'After newInterval', vclass:'poor',
+      sumHtml:`intervals[${i}] = [${intervals[i][0]},${intervals[i][1]}] untouched`,
+      desc:'Yeh booking newInterval ke baad hai, koi overlap nahi — copy as-is.', line:'p3while'});
+    result.push({start: intervals[i][0], end: intervals[i][1]});
+    existingStatus[i] = 'copied';
+    snap({i, existingStatus:[...existingStatus], newStatus:'done', newBlock:{...newBlock}, result: result.map(r=>({...r})),
+      verdict:'Copy as-is', vclass:'poor',
+      sumHtml:`result.add([${intervals[i][0]},${intervals[i][1]}])`,
+      desc:'Remaining bookings ko as-is copy karo.', line:'p3add'});
+    i++;
+  }
+
+  snap({existingStatus:[...existingStatus], newStatus:'done', newBlock:{...newBlock}, result: result.map(r=>({...r})),
+    verdict:'Done', vclass:'zero',
+    sumHtml:`final result has <b>${result.length}</b> interval${result.length>1?'s':''}`,
+    desc:'Calendar phir se clean & sorted hai, nayi booking merge ho chuki hai.', line:'return'});
+
+  return steps;
+}
+
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+const $ = id=>document.getElementById(id);
+const codeEl=$('code'), verdictEl=$('verdict'), sumEl=$('sumLine'), descEl=$('desc'),
+      tripsEl=$('trips'), stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel'),
+      inputRow=$('inputRow'), newRow=$('newRow'), outputRow=$('outputRow'),
+      axisTop=$('axisTop'), axisMid=$('axisMid'), axisBottom=$('axisBottom');
+
+let scale=null, domainLo=0, domainHi=1, curIntervals=[], curNewInterval=[0,0];
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+function renderAxis(el){
+  const ticks = niceTicks(domainLo, domainHi, 6);
+  el.innerHTML = ticks.map(t=>`<span class="tick" style="left:${scale(t)}%">${t}</span>`).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const p = PRESETS[idx];
+  curIntervals = p.intervals; curNewInterval = p.newInterval;
+  steps = buildSteps(p.intervals, p.newInterval);
+  cur=0;
+
+  const allStarts = [...p.intervals.map(v=>v[0]), p.newInterval[0]];
+  const allEnds = [...p.intervals.map(v=>v[1]), p.newInterval[1]];
+  domainLo = Math.min(...allStarts); domainHi = Math.max(...allEnds);
+  scale = makeScale(domainLo, domainHi);
+
+  rawLabel.textContent = `existing: [${p.intervals.map(v=>`[${v[0]},${v[1]}]`).join(', ')}]  ·  newInterval: [${p.newInterval[0]}, ${p.newInterval[1]}]`;
+  dimLabel.textContent = `n = ${p.intervals.length}`;
+  stepTotal.textContent = steps.length-1;
+
+  inputRow.innerHTML = p.intervals.map((iv,idx)=>{
+    const left = scale(iv[0]), width = Math.max(4, scale(iv[1])-scale(iv[0]));
+    return `<div class="ibar pending" id="ibar-${idx}" style="left:${left}%;width:${width}%;top:2px;"><span class="tag2">#${idx}</span>[${iv[0]},${iv[1]}]</div>`;
+  }).join('');
+
+  newRow.innerHTML = `<div class="newbar" id="newbar" style="top:2px;"></div>`;
+  outputRow.innerHTML = '';
+
+  renderAxis(axisTop); renderAxis(axisMid); renderAxis(axisBottom);
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+
+  curIntervals.forEach((iv, idx)=>{
+    const bar = $(`ibar-${idx}`);
+    if(!bar) return;
+    bar.className = 'ibar';
+    const st = s.existingStatus[idx];
+    if(idx === s.i && (st==='pending')) bar.classList.add('current');
+    else if(st==='absorbed') bar.classList.add('absorbed');
+    else if(st==='copied') bar.classList.add('copied');
+    else bar.classList.add('pending');
+  });
+
+  const nb = $('newbar');
+  const left = scale(s.newBlock.start), width = Math.max(4, scale(s.newBlock.end)-scale(s.newBlock.start));
+  nb.style.left = left+'%'; nb.style.width = width+'%';
+  nb.className = `newbar ${s.newStatus}`;
+  nb.textContent = `[${s.newBlock.start}, ${s.newBlock.end}]`;
+
+  outputRow.innerHTML = s.result.map(r=>{
+    const l = scale(r.start), w = Math.max(4, scale(r.end)-scale(r.start));
+    return `<div class="obar" style="left:${l}%;width:${w}%;">[${r.start},${r.end}]</div>`;
+  }).join('');
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+
+  if(s.result.length===0){
+    tripsEl.innerHTML = '<span class="empty">none yet…</span>';
+  } else {
+    tripsEl.innerHTML = s.result.map(r=>`<span class="trip">[${r.start}, ${r.end}]</span>`).join('');
+  }
+
+  let cls = '';
+  if(s.vclass==='zero') cls='-z';
+  else if(s.vclass==='anchor') cls='-a';
+  renderCode(s.line, cls);
+
+  stepNow.textContent = cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

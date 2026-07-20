@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Maximum CPU Load · Weighted Min-Heap Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --anchor:#B5453B;
+    --anchor-fill:#F7E3E0;
+    --poor:#2F6DB5;
+    --poor-fill:#E3EEFA;
+    --rich:#C67A00;
+    --rich-fill:#FBEFD6;
+    --zero:#2E7D57;
+    --zero-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;}
+  h1{font-size:clamp(28px,5vw,44px);font-weight:700;letter-spacing:-.02em;margin:4px 0 10px;}
+  h1 .n{color:var(--anchor);}
+  .sub{color:var(--ink-soft);max-width:74ch;font-size:15px;}
+  .sub code{font-family:"JetBrains Mono",monospace;font-size:.9em;background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 11px;color:var(--ink-soft);}
+  .tag b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:12px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;}
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .stage{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:22px;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+
+  .board{padding:22px 20px 8px;}
+  .arr-label{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);margin-bottom:12px;letter-spacing:.03em;word-break:break-word;}
+
+  .tl-block{margin-bottom:14px;}
+  .tl-title{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;}
+  .tl-area{position:relative;background:var(--rail);border:1px solid var(--line);border-radius:10px;padding:10px 14px 26px;}
+  .tl-row{position:relative;height:34px;margin-bottom:4px;}
+  .tl-axis{position:relative;height:20px;margin-top:2px;}
+  .tl-axis .tick{position:absolute;top:0;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-soft);}
+  .tl-axis .tick::before{content:'';position:absolute;left:50%;top:-10px;width:1px;height:8px;background:var(--line);}
+
+  .ibar{
+    position:absolute;top:2px;height:28px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;
+    border:2px solid var(--cell-line);background:var(--cell-fill);color:var(--ink-soft);
+    transition:background .2s,border-color .2s,color .2s,opacity .2s,transform .2s;
+    white-space:nowrap;overflow:hidden;padding:0 6px;
+  }
+  .ibar.pending{background:#fff;border-color:var(--cell-line);color:var(--ink-soft);}
+  .ibar.current{background:var(--rich-fill);border-color:var(--rich);color:var(--rich);transform:translateY(-2px);box-shadow:0 3px 10px -4px rgba(198,122,0,.55);}
+  .ibar.occupying{background:var(--poor-fill);border-color:var(--poor);color:var(--poor);}
+  .ibar.expired{background:#F1F3F6;border-color:var(--skip);color:var(--skip);opacity:.5;}
+  .ibar .tag2{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:var(--ink-soft);}
+
+  .heap-panel{padding:14px 18px 20px;border-top:1px solid var(--line);margin-top:4px;}
+  .heap-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
+  .found-head{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);}
+  .load-count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);display:flex;gap:14px;}
+  .load-count b{font-size:15px;}
+  .load-count .cur b{color:var(--poor);}
+  .load-count .max b{color:var(--zero);}
+  .heap-chips{display:flex;gap:9px;flex-wrap:wrap;min-height:34px;}
+  .hchip{
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;font-weight:700;
+    background:var(--poor-fill);border:1.5px solid var(--poor);color:var(--poor);
+    padding:6px 11px;border-radius:9px;animation:pop .35s ease;position:relative;
+  }
+  .hchip.top{background:var(--rich-fill);border-color:var(--rich);color:var(--rich);}
+  .hchip .lbl{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--ink-soft);white-space:nowrap;}
+  .heap-chips .empty{color:var(--ink-soft);font-size:12.5px;font-style:italic;}
+  @keyframes pop{from{transform:scale(.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+  .readout{margin:10px 0 4px;padding:16px 18px;border-radius:12px;background:var(--rail);border:1px solid var(--line);min-height:100px;}
+  .verdict{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.04em;margin-bottom:8px;display:inline-block;padding:3px 9px;border-radius:6px;}
+  .verdict.poor{background:var(--poor-fill);color:var(--poor);}
+  .verdict.rich{background:var(--rich-fill);color:var(--rich);}
+  .verdict.zero{background:var(--zero-fill);color:var(--zero);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.anchor{background:var(--anchor-fill);color:var(--anchor);}
+  .sum-line{font-family:"JetBrains Mono",monospace;font-size:14.5px;color:var(--ink);margin:2px 0;}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{margin:0;padding:18px 16px;font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;color:var(--ink);tab-size:2;}
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot{background:var(--poor-fill);}
+  pre.code .ln.hot-a{background:var(--anchor-fill);}
+  pre.code .ln.hot-z{background:var(--zero-fill);}
+  pre.code .ln.hot-r{background:var(--rich-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  button{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 15px;border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s,transform .05s;}
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+  .count b{color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.anchor{background:var(--anchor-fill);border-color:var(--anchor);}
+  .sw.poor{background:var(--poor-fill);border-color:var(--poor);}
+  .sw.rich{background:var(--rich-fill);border-color:var(--rich);}
+  .sw.zero{background:var(--zero-fill);border-color:var(--zero);}
+  .sw.done{background:#F1F3F6;border-color:var(--skip);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Merge Intervals · Sort + Weighted Min-Heap · GFG · Medium</div>
+    <h1>Maximum <span class="n">CPU Load</span></h1>
+    <p class="sub">Same shape as Minimum Meeting Rooms, but every job carries a <b>weight</b> (load). Keep a
+    <b style="color:var(--poor)">min-heap of (end, load)</b>, sorted by end. Before each job, pop off every job that already
+    finished and subtract its load. Add the new job's load, then check if this is a new <b style="color:var(--zero)">peak</b>.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n log n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Sort + Min-Heap (weighted)</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[[1,4,3],[2,5,4],[7,9,6]]</button>
+    <button class="chip" data-preset="1">[[6,7,10],[2,4,11],[8,12,15]]</button>
+    <button class="chip" data-preset="2">[[1,10,5],[2,3,6],[4,6,7],[5,8,4]] triple-overlap</button>
+    <button class="chip" data-preset="3">[] empty</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>Jobs Timeline</span><span id="dimLabel">n = 3</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">raw: [[1,4,3],[2,5,4],[7,9,6]]  (start,end,load)</div>
+        <div class="tl-block">
+          <div class="tl-title">Jobs (sorted by start)</div>
+          <div class="tl-area"><div id="inputRows"></div><div class="tl-axis" id="axisTop"></div></div>
+        </div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="heap-panel">
+        <div class="heap-head">
+          <span class="found-head">Min-Heap (end, load) — top = earliest to finish</span>
+          <span class="load-count"><span class="cur">current: <b id="curLoad">0</b></span><span class="max">peak: <b id="maxLoad">0</b></span></span>
+        </div>
+        <div class="heap-chips" id="heapChips"><span class="empty">empty heap…</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll"><pre class="code" id="code"></pre></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw rich"></i> job being processed</span>
+    <span><i class="sw poor"></i> job's load currently counted</span>
+    <span><i class="sw done"></i> job finished, load removed</span>
+    <span><i class="sw zero"></i> new peak load recorded</span>
+  </div>
+
+  <p class="foot">Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.</p>
+</div>
+
+<script>
+const CODE_LINES = [
+  {t:'<span class="kw">class</span> Solution {', id:null},
+  {t:'  <span class="kw">public</span> <span class="kw">int</span> <span class="fn">maxCpuLoad</span>(<span class="kw">int</span>[][] jobs) {', id:null},
+  {t:'    <span class="kw">if</span> (jobs.length == 0) <span class="kw">return</span> 0;', id:'baseCheck'},
+  {t:'', id:null},
+  {t:'    Arrays.sort(jobs, (a, b) -&gt; a[0] - b[0]);          <span class="cmt">// sort by start</span>', id:'sort'},
+  {t:'    PriorityQueue&lt;<span class="kw">int</span>[]&gt; minHeap =', id:'heapInit'},
+  {t:'        <span class="kw">new</span> PriorityQueue&lt;&gt;((a, b) -&gt; a[0] - b[0]);   <span class="cmt">// {end, load}</span>', id:'heapInit'},
+  {t:'', id:null},
+  {t:'    <span class="kw">int</span> currentLoad = 0, maxLoad = 0;', id:'initLoads'},
+  {t:'', id:null},
+  {t:'    <span class="kw">for</span> (<span class="kw">int</span>[] job : jobs) {', id:'forEach'},
+  {t:'      <span class="kw">int</span> start = job[0], end = job[1], load = job[2];', id:'extract'},
+  {t:'', id:null},
+  {t:'      <span class="cmt">// jitni jobs khatam ho chuki hain, unka load hatao</span>', id:null},
+  {t:'      <span class="kw">while</span> (!minHeap.isEmpty() &amp;&amp; minHeap.peek()[0] &lt;= start) {', id:'whileCheck'},
+  {t:'        currentLoad -= minHeap.poll()[1];', id:'pollExpire'},
+  {t:'      }', id:null},
+  {t:'', id:null},
+  {t:'      minHeap.offer(<span class="kw">new</span> <span class="kw">int</span>[]{end, load});', id:'offer'},
+  {t:'      currentLoad += load;', id:'addLoad'},
+  {t:'      maxLoad = Math.max(maxLoad, currentLoad);', id:'maxUpdate'},
+  {t:'    }', id:null},
+  {t:'    <span class="kw">return</span> maxLoad;', id:'return'},
+  {t:'  }', id:null},
+  {t:'}', id:null},
+];
+
+const PRESETS = [
+  [[1,4,3],[2,5,4],[7,9,6]],
+  [[6,7,10],[2,4,11],[8,12,15]],
+  [[1,10,5],[2,3,6],[4,6,7],[5,8,4]],
+  [],
+];
+
+function makeScale(lo, hi){
+  const pad = Math.max(1, (hi-lo)*0.08) || 1;
+  const L = lo-pad, H = hi+pad;
+  return v => ((v-L)/(H-L))*100;
+}
+function assignLanes(intervals){
+  const laneEnd = [];
+  const lanes = [];
+  intervals.forEach(iv=>{
+    let lane = laneEnd.findIndex(e => e <= iv[0]);
+    if(lane === -1){ lane = laneEnd.length; laneEnd.push(iv[1]); }
+    else { laneEnd[lane] = iv[1]; }
+    lanes.push(lane);
+  });
+  return {lanes, laneCount: laneEnd.length};
+}
+function niceTicks(lo, hi, count){
+  const ticks = [];
+  for(let i=0;i<count;i++) ticks.push(Math.round(lo + (hi-lo)*i/(count-1)));
+  return [...new Set(ticks)];
+}
+
+function buildSteps(raw){
+  const sorted = [...raw].sort((a,b)=>a[0]-b[0]);
+  const n = sorted.length;
+  const steps = [];
+  let heap = [];   // {end, load, idx}
+  const jobStatus = new Array(n).fill('pending');
+  let currentLoad = 0, maxLoad = 0;
+  const heapSorted = ()=>[...heap].sort((a,b)=>a.end-b.end);
+
+  const snap = (o)=>steps.push(Object.assign({
+    sorted, i:-1, jobStatus:[...jobStatus], heap: heapSorted(), currentLoad, maxLoad,
+    verdict:'', vclass:'info', sumHtml:'', desc:'', line:null,
+  }, o));
+
+  snap({verdict:'Start', vclass:'info', sumHtml:`n = ${n} job${n===1?'':'s'}`,
+    desc:'Jobs ko start time se sort karo, khaali heap aur load counters se shuru karo.', line:'baseCheck'});
+
+  if(n===0){
+    snap({verdict:'Done', vclass:'zero', sumHtml:'maxCpuLoad = 0', desc:'Koi job nahi, koi load nahi.', line:'return'});
+    return steps;
+  }
+
+  snap({verdict:'Sorted', vclass:'info',
+    sumHtml:`sorted by start: [${sorted.map(v=>`[${v[0]},${v[1]},${v[2]}]`).join(', ')}]`,
+    desc:'Jobs ab start time order mein hain.', line:'sort'});
+
+  for(let i=0;i<n;i++){
+    const [start,end,load] = sorted[i];
+    jobStatus[i] = 'current';
+    snap({i, jobStatus:[...jobStatus], heap: heapSorted(), currentLoad, maxLoad,
+      verdict:'Next job', vclass:'rich',
+      sumHtml:`job = [start=${start}, end=${end}, load=${load}]`,
+      desc:'Is job ko process karne se pehle, expired jobs saaf karo.', line:'extract'});
+
+    while(heap.length>0 && heapSorted()[0].end <= start){
+      const expired = heapSorted()[0];
+      snap({i, jobStatus:[...jobStatus], heap: heapSorted(), currentLoad, maxLoad,
+        verdict:'Check heap top', vclass:'poor',
+        sumHtml:`heap top end = ${expired.end}  vs  start = ${start}`,
+        desc:`Check: <b>${expired.end} &le; ${start}</b>?`, line:'whileCheck'});
+      heap = heap.filter(h => h !== expired);
+      currentLoad -= expired.load;
+      jobStatus[expired.idx] = 'expired';
+      snap({i, jobStatus:[...jobStatus], heap: heapSorted(), currentLoad, maxLoad,
+        verdict:'Expire job', vclass:'poor',
+        sumHtml:`poll() job #${expired.idx} &rarr; currentLoad -= ${expired.load} = ${currentLoad}`,
+        desc:'Yeh job khatam ho chuki hai — CPU se uska load hata do.', line:'pollExpire'});
+    }
+
+    heap.push({end, load, idx:i});
+    jobStatus[i] = 'occupying';
+    snap({i, jobStatus:[...jobStatus], heap: heapSorted(), currentLoad, maxLoad,
+      verdict:'Add to heap', vclass:'poor',
+      sumHtml:`offer(end=${end}, load=${load})`,
+      desc:'Is job ko active jobs mein daal diya.', line:'offer'});
+
+    currentLoad += load;
+    snap({i, jobStatus:[...jobStatus], heap: heapSorted(), currentLoad, maxLoad,
+      verdict:'Add load', vclass:'poor',
+      sumHtml:`currentLoad += ${load} &rarr; ${currentLoad}`,
+      desc:'CPU ka current total load update kiya.', line:'addLoad'});
+
+    const before = maxLoad;
+    maxLoad = Math.max(maxLoad, currentLoad);
+    const isNewPeak = maxLoad > before;
+    snap({i, jobStatus:[...jobStatus], heap: heapSorted(), currentLoad, maxLoad,
+      verdict: isNewPeak ? 'New peak!' : 'Check peak', vclass: isNewPeak ? 'zero' : 'info',
+      sumHtml:`maxLoad = max(${before}, ${currentLoad}) = <b>${maxLoad}</b>`,
+      desc: isNewPeak ? 'Yeh ab tak ka sabse zyada simultaneous load hai.' : 'Peak wahi purana hai, koi change nahi.',
+      line:'maxUpdate'});
+  }
+
+  snap({jobStatus:[...jobStatus], heap: heapSorted(), currentLoad, maxLoad,
+    verdict:'Done', vclass:'zero',
+    sumHtml:`maxCpuLoad = <b>${maxLoad}</b>`,
+    desc:'Saari jobs process ho gayi. Yehi peak load answer hai.', line:'return'});
+
+  return steps;
+}
+
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+const $ = id=>document.getElementById(id);
+const codeEl=$('code'), verdictEl=$('verdict'), sumEl=$('sumLine'), descEl=$('desc'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel'),
+      inputRows=$('inputRows'), axisTop=$('axisTop'),
+      heapChips=$('heapChips'), curLoadEl=$('curLoad'), maxLoadEl=$('maxLoad');
+
+let scale=null, domainLo=0, domainHi=1, lanesInfo=null, sortedGlobal=[];
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+function renderAxis(el){
+  const ticks = niceTicks(domainLo, domainHi, 6);
+  el.innerHTML = ticks.map(t=>`<span class="tick" style="left:${scale(t)}%">${t}</span>`).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const raw = PRESETS[idx];
+  steps = buildSteps(raw);
+  cur=0;
+
+  sortedGlobal = [...raw].sort((a,b)=>a[0]-b[0]);
+  rawLabel.textContent = `raw: [${raw.map(v=>`[${v[0]},${v[1]},${v[2]}]`).join(', ')}]  (start,end,load)`;
+  dimLabel.textContent = `n = ${raw.length}`;
+  stepTotal.textContent = steps.length-1;
+
+  if(raw.length===0){
+    domainLo=0; domainHi=1; scale = makeScale(domainLo, domainHi);
+    inputRows.innerHTML=''; inputRows.style.height='34px';
+    renderAxis(axisTop);
+    render();
+    return;
+  }
+
+  const allVals = raw.map(v=>[v[0],v[1]]).flat();
+  domainLo = Math.min(...allVals); domainHi = Math.max(...allVals);
+  scale = makeScale(domainLo, domainHi);
+  lanesInfo = assignLanes(sortedGlobal);
+
+  const rowHeight = 34;
+  inputRows.style.height = `${lanesInfo.laneCount * rowHeight}px`;
+  inputRows.style.position = 'relative';
+  inputRows.innerHTML = sortedGlobal.map((iv,idx)=>{
+    const left = scale(iv[0]), width = Math.max(4, scale(iv[1]) - scale(iv[0]));
+    const top = lanesInfo.lanes[idx]*rowHeight;
+    return `<div class="ibar pending" id="ibar-${idx}" style="left:${left}%;width:${width}%;top:${top}px;">
+      <span class="tag2">#${idx}</span>[${iv[0]},${iv[1]}] L${iv[2]}</div>`;
+  }).join('');
+
+  renderAxis(axisTop);
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+
+  sortedGlobal.forEach((iv, idx)=>{
+    const bar = $(`ibar-${idx}`);
+    if(!bar) return;
+    bar.className = 'ibar';
+    bar.classList.add(s.jobStatus[idx] || 'pending');
+  });
+
+  if(!s.heap || s.heap.length===0){
+    heapChips.innerHTML = '<span class="empty">empty heap…</span>';
+  } else {
+    heapChips.innerHTML = s.heap.map((h,idx)=>
+      `<span class="hchip${idx===0?' top':''}">${idx===0?'<span class="lbl">top</span>':''}end=${h.end}, load=${h.load} <span style="opacity:.6">(#${h.idx})</span></span>`
+    ).join('');
+  }
+  curLoadEl.textContent = s.currentLoad;
+  maxLoadEl.textContent = s.maxLoad;
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+
+  let cls = '';
+  if(s.vclass==='zero') cls='-z';
+  else if(s.vclass==='anchor') cls='-a';
+  else if(s.vclass==='rich') cls='-r';
+  renderCode(s.line, cls);
+
+  stepNow.textContent = cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
