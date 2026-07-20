@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Find the Duplicate Number · Array-as-Chain Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --slow:#2F6DB5;
+    --slow-fill:#E3EEFA;
+    --fast:#C67A00;
+    --fast-fill:#FBEFD6;
+    --good:#2E7D57;
+    --good-fill:#E4F1E9;
+    --bad:#B5453B;
+    --bad-fill:#F7E3E0;
+    --ptr2:#8250DF;
+    --ptr2-fill:#EFE7FC;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --accent:#2F6DB5;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;}
+  h1{font-size:clamp(28px,5vw,44px);font-weight:700;letter-spacing:-.02em;margin:4px 0 10px;}
+  h1 .n{color:var(--ptr2);}
+  .sub{color:var(--ink-soft);max-width:74ch;font-size:15px;}
+  .sub code{font-family:"JetBrains Mono",monospace;font-size:.9em;background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 11px;color:var(--ink-soft);}
+  .tag b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:18px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:12px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;}
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .phasebar{display:flex;gap:8px;margin-top:14px;}
+  .phasepill{font-family:"JetBrains Mono",monospace;font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--line);color:var(--ink-soft);background:#fff;}
+  .phasepill.on1{background:var(--slow-fill);color:var(--slow);border-color:var(--slow);}
+  .phasepill.on2{background:var(--ptr2-fill);color:var(--ptr2);border-color:var(--ptr2);}
+
+  .stage{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin-top:20px;}
+  @media(max-width:900px){.stage{grid-template-columns:1fr;}}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+
+  .board{padding:34px 14px 8px;overflow-x:auto;}
+  .svgwrap{display:flex;justify-content:center;min-width:max-content;padding:0 6px;}
+
+  .readout{margin:8px 14px 14px;padding:16px 18px;border-radius:12px;background:var(--rail);border:1px solid var(--line);min-height:96px;}
+  .verdict{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.04em;margin-bottom:8px;display:inline-block;padding:3px 9px;border-radius:6px;}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.slow{background:var(--slow-fill);color:var(--slow);}
+  .verdict.good{background:var(--good-fill);color:var(--good);}
+  .verdict.bad{background:var(--bad-fill);color:var(--bad);}
+  .verdict.ptr2{background:var(--ptr2-fill);color:var(--ptr2);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:4px;}
+  .desc b{color:var(--ink);}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{margin:0;padding:18px 16px;font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;color:var(--ink);tab-size:2;}
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot{background:var(--slow-fill);}
+  pre.code .ln.hot-good{background:var(--good-fill);}
+  pre.code .ln.hot-bad{background:var(--bad-fill);}
+  pre.code .ln.hot-ptr2{background:var(--ptr2-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+  .ty{color:#116329;}
+
+  .controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  button{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);padding:9px 15px;border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s,transform .05s;}
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+  .count b{color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.slow{background:var(--slow-fill);border-color:var(--slow);}
+  .sw.fast{background:var(--fast-fill);border-color:var(--fast);}
+  .sw.good{background:var(--good-fill);border-color:var(--good);}
+  .sw.ptr2{background:var(--ptr2-fill);border-color:var(--ptr2);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  svg .cellbox{fill:var(--cell-fill);stroke:var(--cell-line);stroke-width:2;}
+  svg .cellbox.slow{fill:var(--slow-fill);stroke:var(--slow);}
+  svg .cellbox.fast{fill:var(--fast-fill);stroke:var(--fast);}
+  svg .cellbox.ptr2{fill:var(--ptr2-fill);stroke:var(--ptr2);}
+  svg .cellbox.both{fill:var(--good-fill);stroke:var(--good);}
+  svg .cellval{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:17px;fill:var(--ink);}
+  svg .cellidx{font-family:"JetBrains Mono",monospace;font-size:10.5px;fill:var(--ink-soft);}
+  svg .hoparc{fill:none;stroke-width:2;opacity:.85;}
+  svg .flag{font-family:"JetBrains Mono",monospace;font-size:9.5px;font-weight:700;}
+  svg .flagbg.slow{fill:var(--slow);}
+  svg .flagbg.fast{fill:var(--fast);}
+  svg .flagbg.ptr2{fill:var(--ptr2);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Fast &amp; Slow Pointers · LeetCode 287 · Medium</div>
+    <h1>Find the <span class="n">Duplicate Number</span></h1>
+    <p class="sub"><code>nums[n+1]</code> array hai jisme values <code>1..n</code> range mein hain, ek duplicate ke saath. Isse modify ya extra array use nahi kar sakte.
+      Trick: array ko khud ek **implicit linked list** samjho — index <code>i</code> ka "next" hai <code>nums[i]</code>.
+      Duplicate value ka matlab hai <b>do alag indices same target ko point</b> karte hain — yani ek <b>cycle</b> ban jaati hai. Wahi Floyd's cycle detection se pakdo!</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Fast &amp; Slow Pointers</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[1,3,4,2,2]</button>
+    <button class="chip" data-preset="1">[3,1,3,4,2]</button>
+    <button class="chip" data-preset="2">[1,1] (edge)</button>
+    <button class="chip" data-preset="3">[2,2,2,2,2] (all same)</button>
+  </div>
+  <div class="phasebar" id="phasebar"></div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>The Array (as implicit chain)</span><span id="dimLabel">n = 5</span></div>
+      <div class="board"><div class="svgwrap" id="viz"></div></div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="desc" id="desc">Press <b>Play</b> ya <b>Next</b> se shuru karo.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll"><pre class="code" id="code"></pre></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw slow"></i> slow — phase 1, <code style="font-family:'JetBrains Mono'">nums[slow]</code> +1 hop</span>
+    <span><i class="sw fast"></i> fast — phase 1, +2 hops</span>
+    <span><i class="sw ptr2"></i> ptr1/ptr2 — phase 2, dono +1 hop se entry dhoondte hain</span>
+    <span><i class="sw good"></i> meeting / answer index</span>
+  </div>
+
+  <p class="foot">Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.</p>
+</div>
+
+<script>
+/* ---------- code panel ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="ty">int</span> <span class="fn">findDuplicate</span>(<span class="ty">int</span>[] nums) {', id:null},
+  {t:'  <span class="ty">int</span> slow = <span class="nm">0</span>, fast = <span class="nm">0</span>;   <span class="cmt">// index 0 = phantom head</span>', id:'init'},
+  {t:'', id:null},
+  {t:'  <span class="cmt">// phase 1: find a meeting point inside the cycle</span>', id:null},
+  {t:'  <span class="kw">do</span> {', id:'do'},
+  {t:'    slow = nums[slow];             <span class="cmt">// +1 hop</span>', id:'slowmove'},
+  {t:'    fast = nums[nums[fast]];       <span class="cmt">// +2 hops</span>', id:'fastmove'},
+  {t:'  } <span class="kw">while</span> (slow != fast);', id:'while'},
+  {t:'', id:null},
+  {t:'  <span class="cmt">// phase 2: reset one pointer to index 0, move both +1</span>', id:null},
+  {t:'  <span class="ty">int</span> ptr1 = <span class="nm">0</span>, ptr2 = slow;', id:'ptrinit'},
+  {t:'  <span class="kw">while</span> (ptr1 != ptr2) {', id:'while2'},
+  {t:'    ptr1 = nums[ptr1];', id:'ptrmove'},
+  {t:'    ptr2 = nums[ptr2];', id:'ptrmove2'},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">return</span> ptr1;              <span class="cmt">// the duplicate value</span>', id:'found'},
+  {t:'}', id:null},
+];
+
+/* ---------- presets ---------- */
+const PRESETS = [
+  [1,3,4,2,2],
+  [3,1,3,4,2],
+  [1,1],
+  [2,2,2,2,2],
+];
+
+const NW=54, NH=54, GAP=54, ROWY=110, ROWH=64;
+
+/* ---------- step generator (mirrors the Java exactly) ---------- */
+function buildSteps(nums){
+  const steps = [];
+  const snap = o => steps.push(Object.assign({slow:null,fast:null,ptr1:null,ptr2:null,phase:1,verdict:'',vclass:'info',desc:'',line:null,hops:[]}, o));
+
+  let slow=0, fast=0;
+  snap({slow, fast, verdict:'Start', vclass:'info', line:'init',
+    desc:'slow aur fast dono <b>index 0</b> se shuru (yeh phantom head hai — nums ke actual values 1..n hain, index 0 kabhi cycle ka part nahi banta).'});
+
+  let guard=0;
+  do{
+    const prevSlow=slow, prevFast=fast, mid=nums[fast];
+    slow = nums[slow];
+    snap({slow, fast, verdict:'slow hops', vclass:'slow', line:'slowmove', hops:[[prevSlow,slow,'slow']],
+      desc:`slow = nums[${prevSlow}] = <b>${slow}</b>.`});
+    fast = nums[nums[fast]];
+    snap({slow, fast, verdict:'fast hops (x2)', vclass:'slow', line:'fastmove', hops:[[prevFast,mid,'fast'],[mid,fast,'fast']],
+      desc:`fast = nums[nums[${prevFast}]] → pehle <b>${mid}</b>, phir <b>${fast}</b>.`});
+    guard++;
+    if(slow===fast) break;
+    snap({slow, fast, verdict:'Not equal, continue', vclass:'info', line:'while',
+      desc:`slow(${slow}) != fast(${fast}) — Phase 1 jaari hai.`});
+  } while(guard<100);
+
+  snap({slow, fast, verdict:'Met inside cycle', vclass:'good', line:'while',
+    desc:`slow == fast == <b>${slow}</b>. Cycle confirm — ab Phase 2 se duplicate <b>value</b> nikaalte hain.`});
+
+  let ptr1=0, ptr2=slow;
+  snap({slow, fast, ptr1, ptr2, phase:2, verdict:'Phase 2: ptr1 = 0', vclass:'ptr2', line:'ptrinit',
+    desc:'ptr1 ko index <b>0</b> par reset kiya. ptr2 meeting point par hi rehta hai. Dono ab +1-+1 hop karenge.'});
+
+  let g2=0;
+  while(ptr1!==ptr2 && g2++ < 100){
+    const p1=nums[ptr1], p2=nums[ptr2];
+    snap({slow, fast, ptr1:p1, ptr2:p2, phase:2, verdict:'ptr1 & ptr2 hop +1', vclass:'ptr2', line:'ptrmove',
+      hops:[[ptr1,p1,'ptr2'],[ptr2,p2,'ptr2']],
+      desc:`ptr1 = nums[${ptr1}] = <b>${p1}</b>, ptr2 = nums[${ptr2}] = <b>${p2}</b>.`});
+    ptr1=p1; ptr2=p2;
+  }
+  snap({slow, fast, ptr1, ptr2, phase:2, verdict:`ptr1 == ptr2 == ${ptr1} → duplicate!`, vclass:'good', line:'found',
+    desc:`ptr1 aur ptr2 dono index <b>${ptr1}</b> par mil gaye. Yahi cycle ka entry point hai — aur is problem mein entry point ki <b>value hi duplicate number</b> hai. return <b>${ptr1}</b>.`});
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, CUR_PRESET=null, CUR_NUMS=null;
+
+const $ = id=>document.getElementById(id);
+const vizEl=$('viz'), codeEl=$('code'), verdictEl=$('verdict'), descEl=$('desc'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'), dimLabel=$('dimLabel'), phasebar=$('phasebar');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function cellX(i){ return i*(NW+GAP); }
+
+function renderSVG(nums, slow, fast, ptr1, ptr2, hops){
+  const n = nums.length;
+  const W = Math.max(n*(NW+GAP)-GAP, NW) + 40;
+  const H = ROWY+ROWH+40;
+  let s = `<svg width="${W}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  const colorFor = tag => tag==='slow' ? 'var(--slow)' : (tag==='fast' ? 'var(--fast)' : 'var(--ptr2)');
+
+  // hop arcs (current step's jumps), drawn behind cells
+  (hops||[]).forEach(([from,to,tag])=>{
+    const x1 = cellX(from)+20+NW/2, x2 = cellX(to)+20+NW/2;
+    if(x1===x2) return;
+    const peak = ROWY - 44 - Math.min(Math.abs(x1-x2)*0.12, 40);
+    const mx = (x1+x2)/2;
+    s += `<path class="hoparc" d="M ${x1} ${ROWY} Q ${mx} ${peak} ${x2} ${ROWY}" stroke="${colorFor(tag)}" marker-end="url(#arr-${tag})"/>`;
+  });
+
+  s += `<defs>
+    <marker id="arr-slow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--slow)"/></marker>
+    <marker id="arr-fast" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--fast)"/></marker>
+    <marker id="arr-ptr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--ptr2)"/></marker>
+  </defs>`;
+
+  for(let i=0;i<n;i++){
+    const x = cellX(i)+20;
+    const onSlow = i===slow, onFast = i===fast, onPtr = (i===ptr1 || i===ptr2);
+    let cls='';
+    const flagsOn = [onSlow, onFast, onPtr].filter(Boolean).length;
+    if(flagsOn>1) cls='both';
+    else if(onSlow) cls='slow';
+    else if(onFast) cls='fast';
+    else if(onPtr) cls='ptr2';
+    s += `<rect class="cellbox ${cls}" x="${x}" y="${ROWY}" width="${NW}" height="${NH}" rx="12"/>`;
+    s += `<text class="cellval" x="${x+NW/2}" y="${ROWY+NH/2+6}" text-anchor="middle">${nums[i]}</text>`;
+    s += `<text class="cellidx" x="${x+NW/2}" y="${ROWY+NH+16}" text-anchor="middle">i=${i}</text>`;
+
+    let flags=[];
+    if(onSlow) flags.push(['slow','slow']);
+    if(onFast) flags.push(['fast','fast']);
+    if(i===ptr1) flags.push(['ptr2','ptr1']);
+    if(i===ptr2 && ptr2!==ptr1) flags.push(['ptr2','ptr2']);
+    let fy = ROWY-52;
+    flags.forEach(([cl,label])=>{
+      const w = label.length>4 ? 34 : 30;
+      s += `<rect class="flagbg ${cl}" x="${x+NW/2-w/2}" y="${fy-13}" width="${w}" height="16" rx="4"/>`;
+      s += `<text class="flag" x="${x+NW/2}" y="${fy-1}" text-anchor="middle" fill="#fff">${label}</text>`;
+      fy -= 20;
+    });
+  }
+  s += '</svg>';
+  return s;
+}
+
+function loadPreset(idx){
+  CUR_PRESET = idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  CUR_NUMS = PRESETS[idx];
+  steps = buildSteps(CUR_NUMS);
+  cur = 0;
+  dimLabel.textContent = `nums = [${CUR_NUMS.join(', ')}]`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  vizEl.innerHTML = renderSVG(CUR_NUMS, s.slow, s.fast, s.ptr1, s.ptr2, s.hops);
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  descEl.innerHTML = s.desc || '';
+  renderCode(s.line, s.vclass==='good' ? '-good' : (s.vclass==='bad' ? '-bad' : (s.vclass==='ptr2' ? '-ptr2' : '')));
+  phasebar.innerHTML = `<span class="phasepill ${s.phase===1?'on1':''}">Phase 1 · find meeting point</span><span class="phasepill ${s.phase===2?'on2':''}">Phase 2 · find duplicate</span>`;
+  stepNow.textContent = cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next_(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev_(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next_(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next_();};
+$('prevBtn').onclick=()=>{stop();prev_();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next_();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev_();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

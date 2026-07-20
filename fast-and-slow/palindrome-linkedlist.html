@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Palindrome Linked List · Step Debugger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --slow:#2F6DB5;
+    --slow-fill:#E3EEFA;
+    --fast:#C67A00;
+    --fast-fill:#FBEFD6;
+    --good:#2E7D57;
+    --good-fill:#E4F1E9;
+    --bad:#B5453B;
+    --bad-fill:#F7E3E0;
+    --ptr2:#8250DF;
+    --ptr2-fill:#EFE7FC;
+    --ptr3:#C2185B;
+    --ptr3-fill:#FBE3ED;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --accent:#2F6DB5;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:22px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;}
+  h1{font-size:clamp(28px,5vw,44px);font-weight:700;letter-spacing:-.02em;margin:4px 0 10px;}
+  h1 .n{color:var(--ptr2);}
+  .sub{color:var(--ink-soft);max-width:76ch;font-size:15px;}
+  .sub code{font-family:"JetBrains Mono",monospace;font-size:.9em;background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 11px;color:var(--ink-soft);}
+  .tag b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:12px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;}
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .phasebar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .phasepill{font-family:"JetBrains Mono",monospace;font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--line);color:var(--ink-soft);background:#fff;}
+  .phasepill.on{background:var(--ptr2-fill);color:var(--ptr2);border-color:var(--ptr2);}
+
+  .stage{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin-top:20px;}
+  @media(max-width:930px){.stage{grid-template-columns:1fr;}}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+
+  .board{padding:26px 18px;min-height:200px;display:flex;flex-direction:column;justify-content:center;gap:20px;overflow-x:auto;}
+  .chain{display:flex;align-items:flex-start;gap:2px;flex-wrap:nowrap;min-width:max-content;}
+  .chain.detached{opacity:.97;}
+  .chain-tag{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ptr2);border:1px dashed var(--ptr2);border-radius:6px;padding:3px 7px;margin:20px 10px 0 0;align-self:flex-start;white-space:nowrap;}
+
+  .cell{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:52px;}
+  .badges{display:flex;flex-direction:column;gap:3px;align-items:center;min-height:38px;justify-content:flex-end;}
+  .badge{font-family:"JetBrains Mono",monospace;font-size:9px;font-weight:700;letter-spacing:.02em;padding:2px 6px;border-radius:5px;line-height:1.3;white-space:nowrap;}
+  .badge.slow{color:var(--slow);background:var(--slow-fill);border:1px solid var(--slow);}
+  .badge.fast{color:var(--fast);background:var(--fast-fill);border:1px solid var(--fast);}
+  .badge.p1{color:var(--good);background:var(--good-fill);border:1px solid var(--good);}
+  .badge.p2{color:var(--ptr2);background:var(--ptr2-fill);border:1px solid var(--ptr2);}
+  .badge.prev{color:var(--ptr3);background:var(--ptr3-fill);border:1px solid var(--ptr3);}
+  .badge.curr{color:var(--bad);background:var(--bad-fill);border:1px solid var(--bad);}
+
+  .nodebox{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:16px;background:var(--cell-fill);
+    border:1.6px solid var(--cell-line);color:var(--ink);transition:.2s;}
+  .nodebox.mismatch{border-color:var(--bad);background:var(--bad-fill);color:var(--bad);}
+  .nodebox.matched{border-color:var(--good);background:var(--good-fill);color:var(--good);}
+  .arrow{font-family:"JetBrains Mono",monospace;color:var(--ink-soft);font-size:15px;margin-top:36px;padding:0 3px;}
+  .nullcap{font-family:"JetBrains Mono",monospace;color:var(--ink-soft);font-size:11px;margin-top:34px;border:1px dashed var(--line);border-radius:6px;padding:3px 7px;}
+
+  .readout{margin:8px 14px 14px;padding:16px 18px;border-radius:12px;background:var(--rail);border:1px solid var(--line);min-height:80px;}
+  .verdict{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.04em;margin-bottom:8px;display:inline-block;padding:3px 9px;border-radius:6px;}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.slow{background:var(--slow-fill);color:var(--slow);}
+  .verdict.good{background:var(--good-fill);color:var(--good);}
+  .verdict.bad{background:var(--bad-fill);color:var(--bad);}
+  .verdict.ptr2{background:var(--ptr2-fill);color:var(--ptr2);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:4px;}
+  .desc b{color:var(--ink);}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{margin:0;padding:18px 16px;font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;color:var(--ink);tab-size:2;}
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot{background:var(--slow-fill);}
+  pre.code .ln.hot-good{background:var(--good-fill);}
+  pre.code .ln.hot-bad{background:var(--bad-fill);}
+  pre.code .ln.hot-ptr2{background:var(--ptr2-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+  .ty{color:#116329;}
+
+  .controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  button{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);padding:9px 15px;border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s,transform .05s;}
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+  .count b{color:var(--ink);}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px;font-size:12px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:14px;height:14px;border-radius:5px;border:1.5px solid;}
+  .sw.slow{background:var(--slow-fill);border-color:var(--slow);}
+  .sw.fast{background:var(--fast-fill);border-color:var(--fast);}
+  .sw.p1{background:var(--good-fill);border-color:var(--good);}
+  .sw.p2{background:var(--ptr2-fill);border-color:var(--ptr2);}
+  .sw.pr{background:var(--ptr3-fill);border-color:var(--ptr3);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Fast &amp; Slow Pointers · LeetCode 234 · Easy</div>
+    <h1>Palindrome <span class="n">Linked List</span></h1>
+    <p class="sub">Array hota to bas do-pointer se check ho jaata. Linked list mein <b>backward traverse</b> nahi ho sakta — isliye teen chaal:
+      <code>slow/fast</code> se <b>middle</b> dhoondo, second half ko <b>in-place reverse</b> karo, phir dono halves ko head se compare karo.
+      Aakhir mein list ko wapas <b>restore</b> bhi karte hain — original list untouched dikhni chahiye.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Fast &amp; Slow Pointers + In-place Reversal</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">1→2→2→1 (even, palindrome)</button>
+    <button class="chip" data-preset="1">1→2→3→2→1 (odd, palindrome)</button>
+    <button class="chip" data-preset="2">1→2 (not palindrome)</button>
+    <button class="chip" data-preset="3">7 (single node, edge)</button>
+  </div>
+  <div class="phasebar" id="phasebar"></div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>List State</span><span id="dimLabel">n = 4</span></div>
+      <div class="board" id="stage"></div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="desc" id="desc">Press <b>Play</b> ya <b>Next</b> se shuru karo.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll"><pre class="code" id="code"></pre></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw slow"></i> slow — middle finder</span>
+    <span><i class="sw fast"></i> fast — middle finder (+2)</span>
+    <span><i class="sw pr"></i> prev/curr — reversal in progress</span>
+    <span><i class="sw p1"></i> p1 — compare from head</span>
+    <span><i class="sw p2"></i> p2 — compare from reversed half</span>
+  </div>
+
+  <p class="foot">Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.</p>
+</div>
+
+<script>
+/* ---------- code panel ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="ty">boolean</span> <span class="fn">isPalindrome</span>(ListNode head) {', id:null},
+  {t:'  <span class="kw">if</span> (head == <span class="kw">null</span> || head.next == <span class="kw">null</span>) <span class="kw">return</span> <span class="kw">true</span>;', id:'guard'},
+  {t:'', id:null},
+  {t:'  ListNode slow = head, fast = head;', id:'init'},
+  {t:'  <span class="kw">while</span> (fast.next != <span class="kw">null</span> &amp;&amp; fast.next.next != <span class="kw">null</span>) {', id:'while1'},
+  {t:'    slow = slow.next;', id:'slowmove'},
+  {t:'    fast = fast.next.next;', id:'fastmove'},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  ListNode secondHalf = <span class="fn">reverse</span>(slow.next);', id:'splitcall'},
+  {t:'  ListNode p1 = head, p2 = secondHalf;', id:'cmpinit'},
+  {t:'  <span class="ty">boolean</span> result = <span class="kw">true</span>;', id:'cmpinit'},
+  {t:'  <span class="kw">while</span> (p2 != <span class="kw">null</span>) {', id:'cmpwhile'},
+  {t:'    <span class="kw">if</span> (p1.val != p2.val) { result = <span class="kw">false</span>; <span class="kw">break</span>; }', id:'cmpcheck'},
+  {t:'    p1 = p1.next;', id:'cmpcheck'},
+  {t:'    p2 = p2.next;', id:'cmpcheck'},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  slow.next = <span class="fn">reverse</span>(secondHalf);  <span class="cmt">// restore original list</span>', id:'restore'},
+  {t:'  <span class="kw">return</span> result;', id:'restore'},
+  {t:'}', id:null},
+  {t:'', id:null},
+  {t:'<span class="kw">private</span> ListNode <span class="fn">reverse</span>(ListNode head) {', id:'reverseloop'},
+  {t:'  ListNode prev = <span class="kw">null</span>;', id:'reverseloop'},
+  {t:'  <span class="kw">while</span> (head != <span class="kw">null</span>) {', id:'reverseloop'},
+  {t:'    ListNode next = head.next;', id:'reverseloop'},
+  {t:'    head.next = prev;', id:'reverseloop'},
+  {t:'    prev = head;', id:'reverseloop'},
+  {t:'    head = next;', id:'reverseloop'},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">return</span> prev;', id:null},
+  {t:'}', id:null},
+];
+
+/* ---------- presets ---------- */
+const PRESETS = [
+  [1,2,2,1],
+  [1,2,3,2,1],
+  [1,2],
+  [7],
+];
+
+/* ---------- simulate the EXACT algorithm, snapshot per step ---------- */
+function simulate(vals){
+  const n = vals.length;
+  const nodes = vals.map((v,i)=>({id:i, val:v, next:(i<n-1 ? i+1 : null)}));
+  const get = id => id==null ? null : nodes[id];
+  const V   = id => id==null ? null : nodes[id].val;
+  const steps = [];
+
+  function linksSnap(){ const l={}; nodes.forEach(nd => l[nd.id]=nd.next); return l; }
+  function snap(o){
+    steps.push(Object.assign({
+      links: linksSnap(), slow:null, fast:null, p1:null, p2:null, prev:null, curr:null,
+      phase:1, verdict:'', vclass:'info', desc:'', line:null, mismatchIds:[], matchIds:[]
+    }, o));
+  }
+
+  if(n===0 || n===1){
+    snap({phase:1, verdict:'0/1 node → trivially palindrome', vclass:'good', line:'guard',
+      desc:'List khaali hai ya sirf ek node — hamesha palindrome. return true.'});
+    return {steps, result:true};
+  }
+
+  let slow=0, fast=0;
+  snap({slow, fast, phase:1, verdict:'Start', vclass:'info', line:'init',
+    desc:'slow aur fast dono head se shuru — pehle middle dhoondna hai.'});
+
+  while(get(fast).next!==null && get(get(fast).next).next!==null){
+    slow = get(slow).next;
+    snap({slow, fast, phase:1, verdict:'slow moves', vclass:'slow', line:'slowmove',
+      desc:`slow → node <b>${V(slow)}</b>.`});
+    fast = get(get(fast).next).next;
+    snap({slow, fast, phase:1, verdict:'fast moves', vclass:'slow', line:'fastmove',
+      desc:`fast → node <b>${V(fast)}</b>.`});
+  }
+  snap({slow, fast, phase:1, verdict:`Middle: node ${V(slow)}`, vclass:'good', line:'while1',
+    desc:`slow node <b>${V(slow)}</b> par ruk gaya — first half ki tail. Ab <code>slow.next</code> se aage second half reverse karenge.`});
+
+  const secondHeadId = get(slow).next;
+  snap({slow, fast, phase:1, verdict:'reverse(slow.next) call', vclass:'ptr2', line:'splitcall',
+    desc:`Second half ka head node <b>${V(secondHeadId)}</b> hai. Reverse function ko call karte hain.`});
+
+  let prev=null, curr=secondHeadId;
+  while(curr!==null){
+    const nxt = get(curr).next;
+    get(curr).next = prev;
+    snap({slow, fast, prev, curr, phase:1, verdict:'reverse step', vclass:'ptr2', line:'reverseloop',
+      desc:`node <b>${V(curr)}</b>.next ab ${prev==null?'<code>null</code>':'node <b>'+V(prev)+'</b>'} ki taraf point karta hai.`});
+    prev=curr; curr=nxt;
+  }
+  const secondHalf = prev;
+  snap({slow, fast, phase:1, verdict:`Second half reversed, new head = ${V(secondHalf)}`, vclass:'good', line:'reverseloop',
+    desc:`Reversal complete. Reversed second half ka naya head <b>${V(secondHalf)}</b> hai — dhyan do, node <b>${V(secondHeadId)}</b> ab isi chain ki <b>tail</b> hai aur uska <code>next = null</code>, isliye woh original chain se bhi "disconnect" jaisa dikh raha hai.`});
+
+  let p1=0, p2=secondHalf, result=true;
+  snap({slow, fast, p1, p2, phase:2, verdict:'Compare: p1=head, p2=secondHalf', vclass:'ptr2', line:'cmpinit',
+    desc:'Ab dono halves ko compare karte hain — p1 asli head se, p2 reversed second half se, dono aage badhte hain.'});
+
+  while(p2!==null){
+    snap({slow, fast, p1, p2, phase:2, verdict:'Comparing', vclass:'info', line:'cmpwhile',
+      desc:`p1 = node <b>${V(p1)}</b>, p2 = node <b>${V(p2)}</b>.`});
+    if(V(p1)!==V(p2)){
+      result=false;
+      snap({slow, fast, p1, p2, phase:2, verdict:'MISMATCH → not palindrome', vclass:'bad', line:'cmpcheck',
+        mismatchIds:[p1,p2],
+        desc:`<b>${V(p1)}</b> != <b>${V(p2)}</b> — palindrome nahi hai. Loop turant break.`});
+      break;
+    }
+    snap({slow, fast, p1, p2, phase:2, verdict:'Match, continue', vclass:'good', line:'cmpcheck',
+      matchIds:[p1,p2],
+      desc:`<b>${V(p1)}</b> == <b>${V(p2)}</b> ✅ — dono pointer aage badhao.`});
+    p1 = get(p1).next; p2 = get(p2).next;
+  }
+
+  // restore
+  prev=null; curr=secondHalf;
+  while(curr!==null){ const nxt=get(curr).next; get(curr).next=prev; prev=curr; curr=nxt; }
+  get(slow).next = prev;
+  snap({slow, fast, phase:3, verdict: result ? 'return true (PALINDROME)' : 'return false (NOT palindrome)',
+    vclass: result ? 'good' : 'bad', line:'restore',
+    desc:'List ko wapas original forward order mein restore kar diya — function ke baahar list untouched dikhti hai.'});
+
+  return {steps, result};
+}
+
+/* ---------------- rendering (multi-chain aware, like a linked-list debugger) ---------------- */
+
+let SIM=null, idx=0, CUR_VALS=null;
+
+function computeChains(links, n, primaryHint){
+  // NOTE: during in-place reversal a node can transiently be referenced by
+  // TWO incoming links (old forward link + new reversed link) at once.
+  // We must not draw that node twice — once a node has been placed in an
+  // earlier chain, any later chain that reaches it stops there and shows
+  // a "joins node X" marker instead of redrawing it.
+  const ids = Array.from({length:n}, (_,i)=>i);
+  const indeg = {}; ids.forEach(i=>indeg[i]=0);
+  ids.forEach(i=>{ const nx=links[i]; if(nx!=null) indeg[nx]=(indeg[nx]||0)+1; });
+  let heads = ids.filter(i=>indeg[i]===0);
+  heads.sort((a,b)=> a===primaryHint ? -1 : b===primaryHint ? 1 : a-b);
+  const seenAll = new Set();
+  const chains = [];
+  heads.forEach(h=>{
+    const c=[]; let cur=h; const local=new Set(); let joinsTarget=null;
+    while(cur!=null && !local.has(cur)){
+      if(seenAll.has(cur)){ joinsTarget=cur; break; }
+      c.push(cur); local.add(cur); seenAll.add(cur); cur=links[cur];
+    }
+    chains.push({ids:c, joinsTarget});
+  });
+  ids.forEach(i=>{ if(!seenAll.has(i)) chains.push({ids:[i], joinsTarget:null}); });
+  return chains;
+}
+
+const $ = id=>document.getElementById(id);
+const stageEl=$('stage'), codeEl=$('code'), verdictEl=$('verdict'), descEl=$('desc'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'), dimLabel=$('dimLabel'), phasebar=$('phasebar');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function render(){
+  const s = SIM.steps[idx];
+  const n = CUR_VALS.length;
+
+  const primaryHint = 0; // original head always id 0
+  const chains = computeChains(s.links, n, primaryHint);
+
+  const ptrsOn = {};
+  const add = (id, tag) => { if(id!=null) (ptrsOn[id]=ptrsOn[id]||[]).push(tag); };
+  add(s.slow,'slow'); add(s.fast,'fast'); add(s.p1,'p1'); add(s.p2,'p2'); add(s.prev,'prev'); add(s.curr,'curr');
+
+  stageEl.innerHTML = '';
+  chains.forEach((chain, ci)=>{
+    const row = document.createElement('div');
+    row.className = 'chain' + (ci>0 ? ' detached' : '');
+    if(ci>0){
+      const tag=document.createElement('div'); tag.className='chain-tag'; tag.textContent='chain '+(ci+1);
+      row.appendChild(tag);
+    }
+    chain.ids.forEach(id=>{
+      const cell=document.createElement('div'); cell.className='cell';
+      const badges=document.createElement('div'); badges.className='badges';
+      (ptrsOn[id]||[]).forEach(tag=>{
+        const b=document.createElement('span'); b.className='badge '+tag; b.textContent=tag; badges.appendChild(b);
+      });
+      cell.appendChild(badges);
+      const box=document.createElement('div');
+      let cls='nodebox';
+      if(s.mismatchIds && s.mismatchIds.includes(id)) cls+=' mismatch';
+      else if(s.matchIds && s.matchIds.includes(id)) cls+=' matched';
+      box.className=cls;
+      box.textContent = CUR_VALS[id];
+      cell.appendChild(box);
+      row.appendChild(cell);
+      const arrow=document.createElement('div'); arrow.className='arrow'; arrow.textContent='→';
+      row.appendChild(arrow);
+    });
+    const cap=document.createElement('div'); cap.className='nullcap';
+    cap.textContent = chain.joinsTarget!=null ? `↪ node ${CUR_VALS[chain.joinsTarget]}` : 'null';
+    row.appendChild(cap);
+    stageEl.appendChild(row);
+  });
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  descEl.innerHTML = s.desc || '';
+  renderCode(s.line, s.vclass==='good' ? '-good' : (s.vclass==='bad' ? '-bad' : (s.vclass==='ptr2' ? '-ptr2' : '')));
+
+  const phaseNames = ['', 'Phase 1 · find middle & reverse', 'Phase 2 · compare halves', 'Phase 3 · restore & return'];
+  phasebar.innerHTML = [1,2,3].map(p=>`<span class="phasepill ${s.phase===p?'on':''}">${phaseNames[p]}</span>`).join('');
+
+  stepNow.textContent = idx;
+  $('prevBtn').disabled = idx===0;
+  $('nextBtn').disabled = idx===SIM.steps.length-1;
+}
+
+function loadPreset(i){
+  CUR_VALS = PRESETS[i];
+  document.querySelectorAll('.chip').forEach((c,k)=>c.classList.toggle('active', k===i));
+  SIM = simulate(CUR_VALS);
+  idx = 0;
+  dimLabel.textContent = `n = ${CUR_VALS.length}`;
+  stepTotal.textContent = SIM.steps.length-1;
+  render();
+}
+
+function next_(){ if(idx<SIM.steps.length-1){idx++;render();} else stop(); }
+function prev_(){ if(idx>0){idx--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+let playing=false, timer=null;
+function play(){
+  if(playing){stop();return;}
+  if(idx===SIM.steps.length-1) idx=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(idx<SIM.steps.length-1) next_(); else stop(); }, delay);
+}
+function reset(){ stop(); idx=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next_();};
+$('prevBtn').onclick=()=>{stop();prev_();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next_();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev_();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

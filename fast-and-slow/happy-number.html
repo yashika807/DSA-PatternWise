@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Happy Number · Digit-Square Chain Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --slow:#2F6DB5;
+    --slow-fill:#E3EEFA;
+    --fast:#C67A00;
+    --fast-fill:#FBEFD6;
+    --good:#2E7D57;
+    --good-fill:#E4F1E9;
+    --bad:#B5453B;
+    --bad-fill:#F7E3E0;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --accent:#2F6DB5;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;}
+  h1{font-size:clamp(28px,5vw,44px);font-weight:700;letter-spacing:-.02em;margin:4px 0 10px;}
+  h1 .n{color:var(--good);}
+  .sub{color:var(--ink-soft);max-width:74ch;font-size:15px;}
+  .sub code{font-family:"JetBrains Mono",monospace;font-size:.9em;background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 11px;color:var(--ink-soft);}
+  .tag b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:18px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:12px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;}
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .stage{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin-top:20px;}
+  @media(max-width:900px){.stage{grid-template-columns:1fr;}}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+
+  .board{padding:28px 14px 8px;overflow-x:auto;}
+  .svgwrap{display:flex;justify-content:center;min-width:max-content;padding:0 6px;}
+
+  .readout{margin:8px 14px 14px;padding:16px 18px;border-radius:12px;background:var(--rail);border:1px solid var(--line);min-height:96px;}
+  .verdict{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.04em;margin-bottom:8px;display:inline-block;padding:3px 9px;border-radius:6px;}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.slow{background:var(--slow-fill);color:var(--slow);}
+  .verdict.good{background:var(--good-fill);color:var(--good);}
+  .verdict.bad{background:var(--bad-fill);color:var(--bad);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:4px;}
+  .desc b{color:var(--ink);}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{margin:0;padding:18px 16px;font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;color:var(--ink);tab-size:2;}
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot{background:var(--slow-fill);}
+  pre.code .ln.hot-good{background:var(--good-fill);}
+  pre.code .ln.hot-bad{background:var(--bad-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+  .ty{color:#116329;}
+
+  .controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  button{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);padding:9px 15px;border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s,transform .05s;}
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+  .count b{color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.slow{background:var(--slow-fill);border-color:var(--slow);}
+  .sw.fast{background:var(--fast-fill);border-color:var(--fast);}
+  .sw.good{background:var(--good-fill);border-color:var(--good);}
+  .sw.bad{background:var(--bad-fill);border-color:var(--bad);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  svg .nodebox{fill:var(--cell-fill);stroke:var(--cell-line);stroke-width:2;}
+  svg .nodebox.slow{fill:var(--slow-fill);stroke:var(--slow);}
+  svg .nodebox.fast{fill:var(--fast-fill);stroke:var(--fast);}
+  svg .nodebox.both{fill:var(--good-fill);stroke:var(--good);}
+  svg .nodeval{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:15px;fill:var(--ink);}
+  svg .nodeidx{font-family:"JetBrains Mono",monospace;font-size:10.5px;fill:var(--ink-soft);}
+  svg .arrow{stroke:var(--ink-soft);stroke-width:1.6;fill:none;}
+  svg .cyclearc{stroke:var(--fast);stroke-width:1.8;fill:none;stroke-dasharray:5 4;}
+  svg .flag{font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;}
+  svg .flagbg.slow{fill:var(--slow);}
+  svg .flagbg.fast{fill:var(--fast);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Fast &amp; Slow Pointers · LeetCode 202 · Easy</div>
+    <h1>Happy <span class="n">Number</span></h1>
+    <p class="sub">Koi fixed array ya linked list nahi hai yahan — har number apne digits ke <b>squares ka sum</b> nikal ke agla number "point" karta hai
+      (jaise <code>19 → 1²+9² = 82</code>). Yeh khud ek <b>virtual chain</b> ban jaati hai. Chain ya to <code>1</code> par jaake khud se loop karti hai (happy),
+      ya famous <b>8-number cycle</b> (<code>4→16→37→58→89→145→42→20→4</code>) mein phas jaati hai (unhappy). Slow &amp; fast pointer chala ke cycle pakdo, phir check karo <code>1</code> mila ya nahi.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(log n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Fast &amp; Slow Pointers</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">n = 19 (happy)</button>
+    <button class="chip" data-preset="1">n = 2 (unhappy)</button>
+    <button class="chip" data-preset="2">n = 1 (trivial happy)</button>
+    <button class="chip" data-preset="3">n = 4 (unhappy, entry@start)</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>The Chain (digit-square-sum)</span><span id="dimLabel">n = 19</span></div>
+      <div class="board"><div class="svgwrap" id="viz"></div></div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="desc" id="desc">Press <b>Play</b> ya <b>Next</b> se shuru karo.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll"><pre class="code" id="code"></pre></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw slow"></i> slow — <code style="font-family:'JetBrains Mono'">+1</code> digitSquareSum / move</span>
+    <span><i class="sw fast"></i> fast — <code style="font-family:'JetBrains Mono'">+2</code> digitSquareSum / move</span>
+    <span><i class="sw good"></i> meeting point == 1 → happy</span>
+    <span><i class="sw bad"></i> meeting point != 1 → unhappy (8-cycle)</span>
+  </div>
+
+  <p class="foot">Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.</p>
+</div>
+
+<script>
+/* ---------- code panel ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="ty">boolean</span> <span class="fn">isHappy</span>(<span class="ty">int</span> n) {', id:null},
+  {t:'  <span class="ty">int</span> slow = n, fast = n;', id:'init'},
+  {t:'', id:null},
+  {t:'  <span class="kw">do</span> {', id:'do'},
+  {t:'    slow = <span class="fn">next</span>(slow);            <span class="cmt">// +1 hop</span>', id:'slowmove'},
+  {t:'    fast = <span class="fn">next</span>(<span class="fn">next</span>(fast));    <span class="cmt">// +2 hops</span>', id:'fastmove'},
+  {t:'  } <span class="kw">while</span> (slow != fast);', id:'while'},
+  {t:'', id:null},
+  {t:'  <span class="kw">return</span> slow == <span class="nm">1</span>;      <span class="cmt">// meeting point 1? -> happy</span>', id:'check'},
+  {t:'}', id:null},
+  {t:'', id:null},
+  {t:'<span class="kw">private</span> <span class="ty">int</span> <span class="fn">next</span>(<span class="ty">int</span> n) {', id:'nextfn'},
+  {t:'  <span class="ty">int</span> sum = <span class="nm">0</span>;', id:'nextfn'},
+  {t:'  <span class="kw">while</span> (n &gt; <span class="nm">0</span>) {', id:'nextfn'},
+  {t:'    <span class="ty">int</span> d = n % <span class="nm">10</span>;', id:'nextfn'},
+  {t:'    sum += d * d;', id:'nextfn'},
+  {t:'    n /= <span class="nm">10</span>;', id:'nextfn'},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">return</span> sum;', id:null},
+  {t:'}', id:null},
+];
+
+/* ---------- digit square sum + chain builder ---------- */
+function dss(n){ let s=0; while(n>0){ const d=n%10; s+=d*d; n=Math.floor(n/10);} return s; }
+function buildChain(n){
+  const vals=[n];
+  const seenIdx = new Map([[n,0]]);
+  let cur=n, guard=0;
+  while(guard++<300){
+    const nxt = dss(cur);
+    if(seenIdx.has(nxt)) return {vals, entry: seenIdx.get(nxt)};
+    seenIdx.set(nxt, vals.length);
+    vals.push(nxt);
+    cur = nxt;
+  }
+  return {vals, entry:0};
+}
+
+const PRESETS = [19, 2, 1, 4];
+
+const NW=58, NH=54, GAP=40, ROWY=70, ROWH=100;
+
+function next_(i, n, entry){ return (i===n-1) ? entry : i+1; }
+
+/* ---------- step generator (mirrors the Java exactly) ---------- */
+function buildSteps(n, vals, entry){
+  const N = vals.length;
+  const nx = i => next_(i, N, entry);
+  const steps = [];
+  const snap = o => steps.push(Object.assign({slow:null,fast:null,verdict:'',vclass:'info',desc:'',line:null}, o));
+
+  let slow=0, fast=0;
+  snap({slow, fast, verdict:'Start', vclass:'info', line:'init',
+    desc:`slow aur fast dono <b>n = ${n}</b> se shuru (index 0).`});
+
+  let guard=0;
+  do{
+    slow = nx(slow);
+    snap({slow, fast, verdict:'slow moves', vclass:'slow', line:'slowmove',
+      desc:`slow = next(...) → <b>${vals[slow]}</b> (step ${slow}).`});
+    fast = nx(nx(fast));
+    snap({slow, fast, verdict:'fast moves', vclass:'slow', line:'fastmove',
+      desc:`fast = next(next(...)) → <b>${vals[fast]}</b> (index ${fast}), do hops aage.`});
+    guard++;
+    if(slow===fast) break;
+    snap({slow, fast, verdict:'Not equal, continue', vclass:'info', line:'while',
+      desc:`slow(${vals[slow]}) != fast(${vals[fast]}) — chain jaari hai.`});
+  } while(guard<200);
+
+  const met = vals[slow];
+  const happy = met === 1;
+  snap({slow, fast, verdict: happy ? 'slow == fast == 1 → HAPPY' : `slow == fast == ${met} → NOT happy`,
+    vclass: happy ? 'good' : 'bad', line:'check',
+    desc: happy
+      ? `Meeting point <b>1</b> hai — chain khud se <code>1 → 1</code> loop kar rahi hai. return <b>true</b>.`
+      : `Meeting point <b>${met}</b> hai, jo <code>1</code> nahi — yeh famous 8-number unhappy cycle hai. return <b>false</b>.`});
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, CUR_PRESET=null, CUR_VALS=null, CUR_ENTRY=null;
+
+const $ = id=>document.getElementById(id);
+const vizEl=$('viz'), codeEl=$('code'), verdictEl=$('verdict'), descEl=$('desc'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function nodeX(i){ return i*(NW+GAP); }
+
+function renderSVG(vals, entry, slow, fast){
+  const n = vals.length;
+  const W = Math.max(n*(NW+GAP)-GAP, NW) + 40;
+  const H = ROWH+60;
+  let s = `<svg width="${W}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  for(let i=0;i<n-1;i++){
+    const x1 = nodeX(i)+NW+20, x2 = nodeX(i+1)+20;
+    s += `<line class="arrow" x1="${x1}" y1="${ROWY+NH/2}" x2="${x2-6}" y2="${ROWY+NH/2}" marker-end="url(#arrH)"/>`;
+  }
+  const lastX = nodeX(n-1)+20+NW/2, entryX = nodeX(entry)+20+NW/2;
+  if(n===1){
+    // self loop: small arc above the single node
+    s += `<path class="cyclearc" d="M ${lastX-16} ${ROWY-4} C ${lastX-30} ${ROWY-42}, ${lastX+30} ${ROWY-42}, ${lastX+16} ${ROWY-4}" marker-end="url(#arrCyc)"/>`;
+  } else {
+    const peakY = ROWY+NH+38;
+    s += `<path class="cyclearc" d="M ${lastX} ${ROWY+NH} C ${lastX} ${peakY}, ${entryX} ${peakY}, ${entryX} ${ROWY+NH}" marker-end="url(#arrCyc)"/>`;
+  }
+
+  s += `<defs>
+    <marker id="arrH" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--ink-soft)"/></marker>
+    <marker id="arrCyc" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--fast)"/></marker>
+  </defs>`;
+
+  for(let i=0;i<n;i++){
+    const x = nodeX(i)+20;
+    const onSlow = i===slow, onFast = i===fast, onBoth = onSlow && onFast;
+    const cls = onBoth ? 'both' : (onSlow ? 'slow' : (onFast ? 'fast' : ''));
+    s += `<rect class="nodebox ${cls}" x="${x}" y="${ROWY}" width="${NW}" height="${NH}" rx="12"/>`;
+    s += `<text class="nodeval" x="${x+NW/2}" y="${ROWY+NH/2+5}" text-anchor="middle">${vals[i]}</text>`;
+    s += `<text class="nodeidx" x="${x+NW/2}" y="${ROWY-8}" text-anchor="middle">step ${i}</text>`;
+
+    let fy = ROWY-30;
+    if(onSlow){
+      s += `<rect class="flagbg slow" x="${x+NW/2-20}" y="${fy-13}" width="40" height="16" rx="4"/>`;
+      s += `<text class="flag" x="${x+NW/2}" y="${fy-1}" text-anchor="middle" fill="#fff">slow</text>`;
+      fy -= 20;
+    }
+    if(onFast){
+      s += `<rect class="flagbg fast" x="${x+NW/2-20}" y="${fy-13}" width="40" height="16" rx="4"/>`;
+      s += `<text class="flag" x="${x+NW/2}" y="${fy-1}" text-anchor="middle" fill="#fff">fast</text>`;
+    }
+  }
+  s += '</svg>';
+  return s;
+}
+
+function loadPreset(idx){
+  CUR_PRESET = idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const n = PRESETS[idx];
+  const chain = buildChain(n);
+  CUR_VALS = chain.vals; CUR_ENTRY = chain.entry;
+  steps = buildSteps(n, CUR_VALS, CUR_ENTRY);
+  cur = 0;
+  dimLabel.textContent = `n = ${n}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  vizEl.innerHTML = renderSVG(CUR_VALS, CUR_ENTRY, s.slow, s.fast);
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  descEl.innerHTML = s.desc || '';
+  renderCode(s.line, s.vclass==='good' ? '-good' : (s.vclass==='bad' ? '-bad' : ''));
+  stepNow.textContent = cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next__(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev_(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next__(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next__();};
+$('prevBtn').onclick=()=>{stop();prev_();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next__();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev_();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
