@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Longest Palindrome · Mirror-Ledger Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --build:#2F6DB5;        /* blue  – Pass 1 tally / even pair */
+    --build-fill:#E3EEFA;
+    --check:#C67A00;        /* amber – odd-count entry */
+    --check-fill:#FBEFD6;
+    --found:#2E7D57;        /* green – final answer */
+    --found-fill:#E4F1E9;
+    --rich:#B5453B;
+    --rich-fill:#F7E3E0;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(26px,5vw,42px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--found);}
+  .sub{color:var(--ink-soft);max-width:74ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;align-items:start;
+  }
+  .left-col{display:flex;flex-direction:column;gap:18px;}
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:26px 22px 12px;}
+  .arr-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .arr{
+    display:flex;gap:7px;justify-content:center;flex-wrap:wrap;
+    position:relative;padding-top:34px;min-height:52px;
+  }
+  .cell{
+    position:relative;
+    width:46px;height:46px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:18px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell .idx{
+    position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+    font-size:9px;font-weight:500;color:var(--ink-soft);
+  }
+  .cell.seen1{opacity:.55;}
+  .cell.cur.build{background:var(--build-fill);border-color:var(--build);color:var(--build);transform:translateY(-3px);opacity:1;}
+
+  .flag{
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+  }
+  .flag.build{background:var(--build);color:#fff;}
+
+  .readout{
+    margin:8px 12px 16px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:96px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.build{background:var(--build-fill);color:var(--build);}
+  .verdict.check{background:var(--check-fill);color:var(--check);}
+  .verdict.found{background:var(--found-fill);color:var(--found);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:4px;}
+  .desc b{color:var(--ink);}
+
+  /* Ledger table */
+  .ledger-wrap{padding:16px 18px 22px;}
+  .ledger-empty{color:var(--ink-soft);font-size:12.5px;font-style:italic;padding:8px 0;}
+  table.ledger{width:100%;border-collapse:collapse;font-family:"JetBrains Mono",monospace;font-size:12.5px;}
+  table.ledger th{
+    text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-soft);padding:6px 8px;border-bottom:1px solid var(--line);
+  }
+  table.ledger th.r, table.ledger td.r{text-align:right;}
+  table.ledger td{padding:6px 8px;border-bottom:1px solid var(--rail);}
+  table.ledger tr.row-active td{background:var(--build-fill);}
+  table.ledger tr.row-odd td{background:var(--check-fill);}
+  table.ledger td.key{font-weight:700;}
+  table.ledger td.dim{color:var(--skip);}
+  table.ledger .oddtag{color:var(--check);font-weight:700;}
+
+  .stat-row{
+    display:flex;align-items:center;gap:18px;padding:14px 18px;flex-wrap:wrap;
+    border-top:1px solid var(--line);background:var(--rail);
+  }
+  .stat{display:flex;flex-direction:column;gap:2px;}
+  .stat .lbl{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);}
+  .stat .val{font-family:"JetBrains Mono",monospace;font-size:18px;font-weight:700;color:var(--ink);}
+  .stat .val.on{color:var(--found);}
+  .stat.answer{margin-left:auto;}
+  .stat.answer .val{color:var(--found);font-size:22px;}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-build{background:var(--build-fill);}
+  pre.code .ln.hot-check{background:var(--check-fill);}
+  pre.code .ln.hot-found{background:var(--found-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.build{background:var(--build-fill);border-color:var(--build);}
+  .sw.check{background:var(--check-fill);border-color:var(--check);}
+  .sw.found{background:var(--found-fill);border-color:var(--found);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:360px;}
+    .cell{width:40px;height:40px;font-size:16px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Hash-Maps · Frequency Count · LeetCode 409 · Easy</div>
+    <h1>Longest <span class="n">Palindrome</span></h1>
+    <p class="sub">Pass 1 fills a <b>mirror ledger</b> — a tally per character. Pass 2 walks the ledger:
+    every count contributes its <b style="color:var(--build)">pairs</b> (they sit symmetric on both sides of the mirror),
+    and at most <b style="color:var(--check)">one odd leftover</b> gets to sit alone in the center.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(k) · k ≤ 52</span>
+      <span class="tag"><b>Pattern</b>&nbsp; HashMap Frequency Count</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">"abccccdd"</button>
+    <button class="chip" data-preset="1">"a"</button>
+    <button class="chip" data-preset="2">"bb"</button>
+    <button class="chip" data-preset="3">"" (empty)</button>
+  </div>
+
+  <div class="stage">
+    <div class="left-col">
+      <!-- Array panel -->
+      <div class="panel">
+        <div class="panel-head"><span>The String</span><span id="dimLabel">n = 8</span></div>
+        <div class="board">
+          <div class="arr-label" id="rawLabel">s = "abccccdd"</div>
+          <div class="arr" id="arr"></div>
+        </div>
+        <div class="readout" id="readout">
+          <span class="verdict info" id="verdict">Ready</span>
+          <div class="desc" id="desc">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        </div>
+      </div>
+
+      <!-- Ledger panel -->
+      <div class="panel">
+        <div class="panel-head"><span>Mirror Ledger (HashMap)</span><span id="phaseLabel">—</span></div>
+        <div class="ledger-wrap">
+          <table class="ledger" id="ledgerTable">
+            <thead><tr><th>char</th><th class="r">count</th><th class="r">pairs</th><th class="r">odd?</th></tr></thead>
+            <tbody id="ledgerBody"></tbody>
+          </table>
+          <div class="ledger-empty" id="ledgerEmpty">ledger khaali hai…</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><span class="lbl">length</span><span class="val" id="lengthVal">0</span></div>
+          <div class="stat"><span class="lbl">hasOdd</span><span class="val" id="hasOddVal">false</span></div>
+          <div class="stat answer"><span class="lbl">Answer</span><span class="val" id="answerVal">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Code panel -->
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw build"></i> Pass 1 · tallying / even pair contribution</span>
+    <span><i class="sw check"></i> odd-count entry (possible center leftover)</span>
+    <span><i class="sw found"></i> final answer</span>
+  </div>
+
+  <p class="foot">
+    Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="kw">int</span> <span class="fn">longestPalindrome</span>(String s) {', id:null},
+  {t:'  Map&lt;Character, Integer&gt; freq = <span class="kw">new</span> HashMap&lt;&gt;();', id:'decl'},
+  {t:'', id:null},
+  {t:'  <span class="cmt">// ek hi pass mein poora ledger bana lo</span>', id:null},
+  {t:'  <span class="kw">for</span> (<span class="kw">char</span> c : s.toCharArray()) {', id:'for1'},
+  {t:'    freq.put(c, freq.getOrDefault(c, 0) + 1);', id:'put'},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">int</span> length = 0;', id:null},
+  {t:'  <span class="kw">boolean</span> hasOdd = <span class="kw">false</span>;', id:null},
+  {t:'', id:null},
+  {t:'  <span class="cmt">// ledger ke har entry se pairs nikaalo</span>', id:null},
+  {t:'  <span class="kw">for</span> (<span class="kw">int</span> count : freq.values()) {', id:'for2'},
+  {t:'    length += (count / 2) * 2;      <span class="cmt">// pairs symmetric use ho sakte hain</span>', id:'lengthLine'},
+  {t:'    <span class="kw">if</span> (count % 2 == 1) hasOdd = <span class="kw">true</span>;', id:'oddLine'},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="cmt">// ek hi odd leftover center mein baith sakta hai</span>', id:null},
+  {t:'  <span class="kw">return</span> hasOdd ? length + 1 : length;', id:'retLine'},
+  {t:'}', id:null},
+];
+
+/* ---------- presets ---------- */
+const PRESETS = ["abccccdd", "a", "bb", ""];
+
+/* ---------- step generator (mirrors the Java exactly) ---------- */
+function buildSteps(text){
+  const steps = [];
+  const ledger = new Map();
+  const computed = {};
+  let length = 0, hasOdd = false;
+
+  const snap = (o) => steps.push(Object.assign({
+    text, i:-1, phase:0, ledger:new Map(ledger), computed:Object.assign({}, computed),
+    p1Done:false, verdict:'', vclass:'info', desc:'', line:null,
+    activeKey:null, length, hasOdd, answer:null,
+  }, o));
+
+  snap({verdict:'Ready', vclass:'info',
+    desc: text.length ? `String <b>"${text}"</b> loaded (n = ${text.length}). Pass 1 builds the ledger, Pass 2 counts pairs + one odd leftover.` : 'Empty string loaded — ledger khaali rahega.',
+    line:'decl'});
+
+  // Pass 1: tally
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    ledger.set(c, (ledger.get(c) || 0) + 1);
+    snap({i, phase:1, verdict:'Tally', vclass:'build',
+      desc:`Character <b>'${c}'</b> ki tally badhayi → count = <b>${ledger.get(c)}</b>.`,
+      line:'put', ledger:new Map(ledger), activeKey:c});
+  }
+
+  snap({phase:1, p1Done:true, verdict:'Ledger complete', vclass:'info',
+    desc:'Pass 1 khatam. Ab Pass 2: har entry se pairs nikaalo aur odd leftover track karo.',
+    line:'for2', ledger:new Map(ledger)});
+
+  // Pass 2: walk ledger entries
+  for (const [k, v] of ledger.entries()) {
+    const pairs = Math.floor(v / 2) * 2;
+    length += pairs;
+    const isOdd = (v % 2 === 1);
+    const wasOddAlready = hasOdd;
+    if (isOdd) hasOdd = true;
+    computed[k] = {pairs, odd:isOdd};
+
+    let desc = `'${k}' count = <b>${v}</b> → pairs contribution = <code>${pairs}</code>, running length = <b>${length}</b>.`;
+    if (isOdd) {
+      desc += wasOddAlready
+        ? ` Odd count hai, par center slot pehle hi kisi aur ne le liya — extra leftover discard.`
+        : ` Odd count mila → <b>hasOdd = true</b> (center slot reserve ho gaya).`;
+    }
+    const lines = isOdd ? ['lengthLine','oddLine'] : ['lengthLine'];
+    snap({phase:2, p1Done:true, verdict:`Process '${k}'`, vclass: isOdd ? 'check' : 'build',
+      desc, line:lines, ledger:new Map(ledger), activeKey:k, computed:Object.assign({}, computed),
+      length, hasOdd});
+  }
+
+  const answer = hasOdd ? length + 1 : length;
+  snap({phase:3, p1Done:true, verdict:'Answer', vclass:'found',
+    desc: hasOdd ? `Ek odd leftover center mein baith sakta hai → <b>${length} + 1 = ${answer}</b>.` : `Koi odd leftover nahi → seedha <b>length = ${answer}</b>.`,
+    line:'retLine', ledger:new Map(ledger), computed:Object.assign({}, computed),
+    length, hasOdd, answer});
+
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0, currentRaw='';
+
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'),
+      descEl=$('desc'), ledgerBody=$('ledgerBody'), ledgerEmpty=$('ledgerEmpty'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel'), phaseLabel=$('phaseLabel'),
+      lengthVal=$('lengthVal'), hasOddVal=$('hasOddVal'), answerVal=$('answerVal');
+
+function renderCode(hotIds, cls){
+  const ids = Array.isArray(hotIds) ? hotIds : (hotIds ? [hotIds] : []);
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && ids.includes(l.id)) ? ` hot-${cls}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const raw = PRESETS[idx];
+  currentRaw = raw;
+  steps = buildSteps(raw);
+  cur=0;
+  rawLabel.textContent = raw.length ? `s = "${raw}"` : 's = "" (empty)';
+  dimLabel.textContent = `n = ${raw.length}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  const str = currentRaw;
+
+  // array cells
+  arrEl.innerHTML='';
+  if (str.length === 0) {
+    arrEl.innerHTML = '<span style="font-family:\'JetBrains Mono\';font-size:12.5px;color:var(--ink-soft);font-style:italic;">(khaali string — koi character nahi)</span>';
+  } else {
+    for (let idx=0; idx<str.length; idx++){
+      const v = str[idx];
+      const c=document.createElement('div');
+      c.className='cell';
+      let flag=false;
+      if (s.p1Done || (s.phase===1 && idx < s.i)) c.classList.add('seen1');
+      if (idx===s.i && s.phase===1){
+        c.classList.add('cur','build');
+        flag=true;
+      }
+      c.innerHTML = `<span class="idx">${idx}</span>${v}`;
+      if (flag){
+        const fl=document.createElement('div');
+        fl.className='flag build';
+        fl.textContent='tally';
+        c.appendChild(fl);
+      }
+      arrEl.appendChild(c);
+    }
+  }
+
+  // readout
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  descEl.innerHTML = s.desc || '';
+
+  phaseLabel.textContent = s.phase===0 ? '—' : s.phase===1 ? 'Pass 1 · tally' : s.phase===2 ? 'Pass 2 · pairs' : 'Done';
+
+  // ledger table
+  if (s.ledger.size === 0){
+    ledgerBody.innerHTML='';
+    ledgerEmpty.style.display='block';
+  } else {
+    ledgerEmpty.style.display='none';
+    let rows='';
+    for (const [k,v] of s.ledger.entries()){
+      const info = s.computed[k];
+      let rowCls='';
+      if (s.phase===1 && s.activeKey===k) rowCls='row-active';
+      else if (s.phase===2 && s.activeKey===k) rowCls = info && info.odd ? 'row-odd' : 'row-active';
+      const pairsTxt = info ? info.pairs : '<span class="dim">…</span>';
+      const oddTxt = info ? (info.odd ? '<span class="oddtag">yes</span>' : 'no') : '<span class="dim">…</span>';
+      rows += `<tr class="${rowCls}"><td class="key">'${k}'</td><td class="r">${v}</td><td class="r">${pairsTxt}</td><td class="r">${oddTxt}</td></tr>`;
+    }
+    ledgerBody.innerHTML = rows;
+  }
+
+  // stats
+  lengthVal.textContent = s.length;
+  hasOddVal.textContent = s.hasOdd ? 'true' : 'false';
+  hasOddVal.className = 'val' + (s.hasOdd ? ' on' : '');
+  answerVal.textContent = s.answer !== null ? s.answer : '—';
+
+  // code highlight
+  renderCode(s.line, s.vclass);
+
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
