@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Number of Rotations · lo/mid/hi Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --lo:#2F6DB5;
+    --lo-fill:#E3EEFA;
+    --hi:#C67A00;
+    --hi-fill:#FBEFD6;
+    --mid:#B5453B;
+    --mid-fill:#F7E3E0;
+    --found:#2E7D57;
+    --found-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(24px,4.6vw,40px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--mid);}
+  .sub{color:var(--ink-soft);max-width:70ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:30px 22px 12px;}
+  .arr-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .arr{
+    display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
+    position:relative;padding-top:34px;
+  }
+  .cell{
+    position:relative;
+    width:54px;height:54px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:18px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell .idx{
+    position:absolute;top:-19px;left:50%;transform:translateX(-50%);
+    font-size:10px;font-weight:500;color:var(--ink-soft);
+  }
+  .cell.lo{background:var(--lo-fill);border-color:var(--lo);color:var(--lo);}
+  .cell.hi{background:var(--hi-fill);border-color:var(--hi);color:var(--hi);}
+  .cell.mid{background:var(--mid-fill);border-color:var(--mid);color:var(--mid);transform:translateY(-3px);}
+  .cell.found{background:var(--found-fill);border-color:var(--found);color:var(--found);transform:translateY(-3px);}
+  .cell.eliminated{opacity:.28;}
+
+  .flag{
+    position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+  }
+  .flag.lo{background:var(--lo);color:#fff;}
+  .flag.hi{background:var(--hi);color:#fff;}
+  .flag.mid{background:var(--mid);color:#fff;top:-24px;}
+  .flag.stack{top:-24px;}
+
+  .readout{
+    margin:8px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:112px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.lo{background:var(--lo-fill);color:var(--lo);}
+  .verdict.hi{background:var(--hi-fill);color:var(--hi);}
+  .verdict.found{background:var(--found-fill);color:var(--found);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.mid{background:var(--mid-fill);color:var(--mid);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:15px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .found-box{
+    padding:14px 18px 22px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .result-chip{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    background:var(--found-fill);border:1.5px solid var(--found);color:var(--found);
+    padding:6px 11px;border-radius:9px;display:inline-block;
+  }
+  .result-chip.empty{background:#fff;border-color:var(--line);color:var(--ink-soft);font-style:italic;font-weight:500;}
+
+  .code-scroll{max-height:520px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-lo{background:var(--lo-fill);}
+  pre.code .ln.hot-hi{background:var(--hi-fill);}
+  pre.code .ln.hot-mid{background:var(--mid-fill);}
+  pre.code .ln.hot-found{background:var(--found-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.lo{background:var(--lo-fill);border-color:var(--lo);}
+  .sw.hi{background:var(--hi-fill);border-color:var(--hi);}
+  .sw.mid{background:var(--mid-fill);border-color:var(--mid);}
+  .sw.found{background:var(--found-fill);border-color:var(--found);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{width:44px;height:44px;font-size:15px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Binary Search · GFG-style · Medium</div>
+    <h1>Number of <span class="n">Rotations</span></h1>
+    <p class="sub">Same seam-finding search as <code>find-minimum-in-rotated-sorted-array</code> — the seam's
+    <b style="color:var(--found)">index</b> IS the rotation count. This time we keep <code>lo</code> itself, not <code>nums[lo]</code>.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(log n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Binary Search on a Rotated Array</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[3,4,5,1,2]</button>
+    <button class="chip" data-preset="1">[4,5,6,7,0,1,2]</button>
+    <button class="chip" data-preset="2">[11,13,15,17] no rotation</button>
+    <button class="chip" data-preset="3">[2,1] minimal</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>The Array (rotated)</span><span id="dimLabel">n = 5</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">nums = [3, 4, 5, 1, 2]</div>
+        <div class="arr" id="arr"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found-box">
+        <div class="found-head">Rotation count</div>
+        <span class="result-chip empty" id="resultChip">not yet…</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw lo"></i> <code style="font-family:'JetBrains Mono'">lo</code></span>
+    <span><i class="sw hi"></i> <code style="font-family:'JetBrains Mono'">hi</code></span>
+    <span><i class="sw mid"></i> <code style="font-family:'JetBrains Mono'">mid</code></span>
+    <span><i class="sw found"></i> minimum's index = rotation count</span>
+  </div>
+
+  <p class="foot">
+    Greyed cells are eliminated — outside <code>[lo, hi]</code>. Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="kw">int</span> <span class="fn">countRotations</span>(<span class="kw">int</span>[] nums) {', id:null},
+  {t:'  <span class="kw">int</span> lo = 0, hi = nums.length - 1;', id:'init'},
+  {t:'', id:null},
+  {t:'  <span class="kw">while</span> (lo &lt; hi) {', id:'while'},
+  {t:'    <span class="kw">int</span> mid = lo + (hi - lo) / 2;', id:'mid'},
+  {t:'', id:null},
+  {t:'    <span class="kw">if</span> (nums[mid] &gt; nums[hi]) {', id:'gt'},
+  {t:'      lo = mid + 1;   <span class="cmt">// seam is to the right</span>', id:'setLo'},
+  {t:'    } <span class="kw">else</span> {', id:'le'},
+  {t:'      hi = mid;       <span class="cmt">// mid..hi already sorted</span>', id:'setHi'},
+  {t:'    }', id:null},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">return</span> lo;   <span class="cmt">// index of min == rotation count</span>', id:'return'},
+  {t:'}', id:null},
+];
+
+/* ---------- presets ---------- */
+const PRESETS = [
+  [3,4,5,1,2],
+  [4,5,6,7,0,1,2],
+  [11,13,15,17],
+  [2,1],
+];
+
+/* ---------- step generator (mirrors the Java exactly) ---------- */
+function buildSteps(nums){
+  const steps = [];
+  const snap = (o)=>steps.push(Object.assign({
+    lo:-1, hi:-1, mid:-1, foundIdx:-1,
+    verdict:'', vclass:'info', sumHtml:'', desc:'', line:null,
+  }, o));
+
+  let lo = 0, hi = nums.length - 1;
+  snap({lo, hi, verdict:'Init', vclass:'info',
+    sumHtml:`lo = 0, hi = ${hi}`, desc:'Whole array could contain the seam.', line:'init'});
+
+  while (lo < hi) {
+    const mid = lo + Math.floor((hi - lo) / 2);
+    snap({lo, hi, mid, verdict:'Compute mid', vclass:'mid',
+      sumHtml:`mid = ${lo} + (${hi}-${lo})/2 = <b>${mid}</b>`,
+      desc:`Compare nums[${mid}] = ${nums[mid]} against nums[hi] = ${nums[hi]}.`,
+      line:'mid'});
+
+    if (nums[mid] > nums[hi]) {
+      snap({lo, hi, mid, verdict:'mid > hi · seam right', vclass:'lo',
+        sumHtml:`nums[${mid}]=${nums[mid]} <span class="op">&gt;</span> nums[${hi}]=${nums[hi]}`,
+        desc:'mid is on the "big" side before rotation. Seam is further right. <b>lo = mid + 1</b>.',
+        line:'setLo'});
+      lo = mid + 1;
+    } else {
+      snap({lo, hi, mid, verdict:'mid <= hi · already sorted', vclass:'hi',
+        sumHtml:`nums[${mid}]=${nums[mid]} <span class="op">&lt;=</span> nums[${hi}]=${nums[hi]}`,
+        desc:'mid..hi has no seam — already sorted. Minimum is here or to the left. <b>hi = mid</b>.',
+        line:'setHi'});
+      hi = mid;
+    }
+  }
+
+  snap({lo, hi, foundIdx:lo, verdict:'Rotation count found!', vclass:'found',
+    sumHtml:`lo == hi == <b>${lo}</b>`, desc:`Array was rotated <b>${lo}</b> time${lo===1?'':'s'}.`, line:'return'});
+
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), resultChip=$('resultChip'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot-${cls||'lo'}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const nums = PRESETS[idx];
+  steps = buildSteps(nums);
+  cur=0;
+  rawLabel.textContent = `nums = [${nums.join(', ')}]`;
+  dimLabel.textContent = `n = ${nums.length}`;
+  stepTotal.textContent = steps.length-1;
+  window.__nums = nums;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  const nums = window.__nums;
+  arrEl.innerHTML='';
+  nums.forEach((v,idx)=>{
+    const c=document.createElement('div');
+    c.className='cell';
+    let flags=[];
+    if (idx < s.lo || idx > s.hi) c.classList.add('eliminated');
+    if (idx===s.foundIdx) c.classList.add('found');
+    else if (idx===s.mid) c.classList.add('mid');
+    if (idx===s.lo) flags.push(['lo','lo']);
+    if (idx===s.hi) flags.push(['hi','hi']);
+    if (idx===s.mid) flags.push(['mid','mid']);
+    c.innerHTML = `<span class="idx">${idx}</span>${v}`;
+    flags.forEach((f)=>{
+      const fl=document.createElement('div');
+      fl.className=`flag ${f[0]}${flags.length>1 && f[0]!=='mid' ? ' stack':''}`;
+      fl.textContent=f[1];
+      c.appendChild(fl);
+    });
+    arrEl.appendChild(c);
+  });
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  if (s.foundIdx !== -1) {
+    resultChip.className = 'result-chip';
+    resultChip.textContent = s.foundIdx;
+  } else {
+    resultChip.className = 'result-chip empty';
+    resultChip.textContent = 'not yet…';
+  }
+  renderCode(s.line, s.vclass==='found'?'found':(s.vclass==='mid'?'mid':(s.vclass==='hi'?'hi':'lo')));
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Minimum Days for m Bouquets · Binary Search on the Answer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --lo:#2F6DB5;
+    --lo-fill:#E3EEFA;
+    --hi:#C67A00;
+    --hi-fill:#FBEFD6;
+    --mid:#B5453B;
+    --mid-fill:#F7E3E0;
+    --found:#2E7D57;
+    --found-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(22px,4.2vw,38px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--mid);}
+  .sub{color:var(--ink-soft);max-width:72ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .sub b.tag-answer{color:var(--mid);}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  /* flowers row */
+  .flowers-row{display:flex;gap:8px;align-items:center;justify-content:center;padding:24px 14px 8px;flex-wrap:wrap;}
+  .flower{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .flower-cell{
+    width:42px;height:42px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:13px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);color:var(--ink-soft);
+    transition:background .2s,border-color .2s,color .2s;
+  }
+  .flower-cell.bloomed{background:var(--lo-fill);border-color:var(--lo);color:var(--lo);}
+  .flower-cell.in-bouquet{background:var(--found-fill);border-color:var(--found);color:var(--found);}
+  .flower-tag{font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--ink-soft);min-height:12px;}
+  .flower-tag b{color:var(--found);}
+
+  .feas-strip{
+    margin:4px 16px 14px;padding:10px 14px;border-radius:10px;
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;
+    background:var(--rail);border:1px solid var(--line);color:var(--ink-soft);
+  }
+  .feas-strip b{color:var(--ink);}
+  .feas-badge{font-weight:700;font-size:11px;padding:3px 9px;border-radius:6px;}
+  .feas-badge.yes{background:var(--found-fill);color:var(--found);}
+  .feas-badge.no{background:var(--hi-fill);color:var(--hi);}
+  .feas-badge.pending{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+
+  .numline-wrap{padding:34px 34px 14px;border-top:1px solid var(--line);}
+  .numline-label{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.08em;margin-bottom:38px;}
+  .numline-track{position:relative;height:8px;background:var(--cell-line);border-radius:4px;margin:0 4px;}
+  .numline-range{position:absolute;top:0;height:8px;background:var(--found-fill);border:1px solid var(--found);border-radius:4px;opacity:.55;}
+  .numline-marker{position:absolute;top:-34px;transform:translateX(-50%);text-align:center;white-space:nowrap;}
+  .numline-marker .dot{width:12px;height:12px;border-radius:50%;margin:0 auto 5px;border:2.5px solid #fff;box-shadow:0 0 0 2px currentColor;}
+  .numline-marker.lo{color:var(--lo);}
+  .numline-marker.hi{color:var(--hi);}
+  .numline-marker.mid{color:var(--mid);top:-58px;}
+  .numline-marker.found{color:var(--found);}
+  .numline-marker .val{
+    font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;
+    background:#fff;padding:1px 6px;border-radius:6px;border:1.5px solid currentColor;
+  }
+  .numline-scale{display:flex;justify-content:space-between;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-soft);margin:10px 4px 0;}
+
+  .readout{
+    margin:14px 16px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:96px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.lo{background:var(--lo-fill);color:var(--lo);}
+  .verdict.hi{background:var(--hi-fill);color:var(--hi);}
+  .verdict.found{background:var(--found-fill);color:var(--found);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.mid{background:var(--mid-fill);color:var(--mid);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:2px;}
+  .desc b{color:var(--ink);}
+
+  .found-box{
+    padding:14px 18px 22px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .result-chip{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    background:var(--found-fill);border:1.5px solid var(--found);color:var(--found);
+    padding:6px 11px;border-radius:9px;display:inline-block;
+  }
+  .result-chip.empty{background:#fff;border-color:var(--line);color:var(--ink-soft);font-style:italic;font-weight:500;}
+
+  .code-scroll{max-height:660px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-lo{background:var(--lo-fill);}
+  pre.code .ln.hot-hi{background:var(--hi-fill);}
+  pre.code .ln.hot-mid{background:var(--mid-fill);}
+  pre.code .ln.hot-found{background:var(--found-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:22px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.lo{background:var(--lo-fill);border-color:var(--lo);}
+  .sw.hi{background:var(--hi-fill);border-color:var(--hi);}
+  .sw.mid{background:var(--mid-fill);border-color:var(--mid);}
+  .sw.found{background:var(--found-fill);border-color:var(--found);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Binary Search on the Answer · LeetCode 1482 · Medium</div>
+    <h1>Minimum Days for <span class="n">m Bouquets</span></h1>
+    <p class="sub"><b class="tag-answer">Another "search over the answer", not the array.</b>
+    We binary search the <b>calendar day</b> (<code>min(bloomDay)</code> to <code>max(bloomDay)</code>).
+    Each candidate day is tested with a feasibility check: scan the garden left-to-right, count
+    <b>consecutive</b> already-bloomed flowers, and every run of <code>k</code> forms a bouquet.
+    Enough bouquets? Try an earlier day. Not enough? Wait longer.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n log(maxDay−minDay))</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Binary Search on the Answer</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">m=3, k=1</button>
+    <button class="chip" data-preset="1">m=3, k=2 (impossible)</button>
+    <button class="chip" data-preset="2">m=2, k=3</button>
+    <button class="chip" data-preset="3">huge bloom days</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>Garden (bloomDay per flower)</span><span id="dimLabel">m=3, k=1</span></div>
+      <div class="flowers-row" id="flowers"></div>
+      <div class="feas-strip">
+        <span>bouquets made: <b id="bouquetCount">—</b> vs m = <b id="mVal">3</b></span>
+        <span class="feas-badge pending" id="feasBadge">—</span>
+      </div>
+
+      <div class="numline-wrap">
+        <div class="numline-label">DAY SEARCH SPACE — candidate answers, not array indices</div>
+        <div class="numline-track" id="track">
+          <div class="numline-range" id="rangeFill"></div>
+        </div>
+        <div class="numline-scale"><span id="scaleMin">1</span><span id="scaleMax">10</span></div>
+      </div>
+
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="desc" id="desc">Press <b>Play</b> or <b>Next</b> to begin.</div>
+      </div>
+      <div class="found-box">
+        <div class="found-head">Minimum feasible day</div>
+        <span class="result-chip empty" id="resultChip">not yet…</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speedSlider" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw lo"></i> <code style="font-family:'JetBrains Mono'">lo</code> — earliest still-unproven day</span>
+    <span><i class="sw hi"></i> <code style="font-family:'JetBrains Mono'">hi</code> — best feasible day so far</span>
+    <span><i class="sw mid"></i> <code style="font-family:'JetBrains Mono'">mid</code> — candidate day being tested</span>
+    <span><i class="sw found"></i> final answer / completed bouquet</span>
+  </div>
+
+  <p class="foot">
+    Blue flowers have bloomed by the candidate day; green ones are locked into a completed bouquet. Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="kw">int</span> <span class="fn">minDays</span>(<span class="kw">int</span>[] bloomDay, <span class="kw">int</span> m, <span class="kw">int</span> k) {', id:null},
+  {t:'  <span class="kw">if</span> ((<span class="kw">long</span>) m * k &gt; bloomDay.length) <span class="kw">return</span> -1;', id:'precheck'},
+  {t:'', id:null},
+  {t:'  <span class="kw">int</span> lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;', id:'initRange'},
+  {t:'  <span class="kw">for</span> (<span class="kw">int</span> b : bloomDay) { lo = Math.min(lo,b); hi = Math.max(hi,b); }', id:'scanRange'},
+  {t:'', id:null},
+  {t:'  <span class="kw">while</span> (lo &lt; hi) {', id:'while'},
+  {t:'    <span class="kw">int</span> mid = lo + (hi - lo) / 2;   <span class="cmt">// candidate day</span>', id:'mid'},
+  {t:'', id:null},
+  {t:'    <span class="kw">if</span> (canMake(bloomDay, m, k, mid)) {', id:'check'},
+  {t:'      hi = mid;        <span class="cmt">// feasible — try earlier</span>', id:'setHi'},
+  {t:'    } <span class="kw">else</span> {', id:null},
+  {t:'      lo = mid + 1;    <span class="cmt">// not enough yet — wait</span>', id:'setLo'},
+  {t:'    }', id:null},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">return</span> lo;   <span class="cmt">// earliest feasible day</span>', id:'return'},
+  {t:'}', id:null},
+  {t:'', id:null},
+  {t:'<span class="kw">private</span> <span class="kw">boolean</span> <span class="fn">canMake</span>(<span class="kw">int</span>[] bloomDay, <span class="kw">int</span> m, <span class="kw">int</span> k, <span class="kw">int</span> day) {', id:null},
+  {t:'  <span class="kw">int</span> bouquets = 0, streak = 0;', id:'streakInit'},
+  {t:'  <span class="kw">for</span> (<span class="kw">int</span> b : bloomDay) {', id:null},
+  {t:'    <span class="kw">if</span> (b &lt;= day) {', id:'bloomed'},
+  {t:'      streak++;', id:'streakInc'},
+  {t:'      <span class="kw">if</span> (streak == k) { bouquets++; streak = 0; }', id:'formBouquet'},
+  {t:'    } <span class="kw">else</span> { streak = 0; }   <span class="cmt">// run broken</span>', id:'streakReset'},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">return</span> bouquets &gt;= m;', id:'cmpM'},
+  {t:'}', id:null},
+];
+
+/* ---------- presets: [bloomDay, m, k] ---------- */
+const PRESETS = [
+  [[1,10,3,10,2], 3, 1],
+  [[1,10,3,10,2], 3, 2],
+  [[7,7,7,7,12,7,7], 2, 3],
+  [[1000000000,1000000000], 1, 1],
+];
+
+/* ---------- pure helper: flower states + bouquet groups for a given day ---------- */
+function flowerStates(bloomDay, k, day){
+  const states = bloomDay.map(b => ({ bloomed: b <= day, bouquetIdx: null }));
+  let streak = 0, groupStart = -1, bouquets = 0;
+  for (let i = 0; i < bloomDay.length; i++) {
+    if (states[i].bloomed) {
+      if (streak === 0) groupStart = i;
+      streak++;
+      if (streak === k) {
+        for (let j = groupStart; j <= i; j++) states[j].bouquetIdx = bouquets;
+        bouquets++;
+        streak = 0;
+      }
+    } else {
+      streak = 0;
+    }
+  }
+  return { states, bouquets };
+}
+
+/* ---------- step generator (mirrors the Java exactly) ---------- */
+function buildSteps(bloomDay, m, k){
+  const steps = [];
+  const snap = (o)=>steps.push(Object.assign({
+    lo:-1, hi:-1, mid:-1, foundIdx:-1, states:null, bouquets:null, feasible:null,
+    verdict:'', vclass:'info', desc:'', line:null,
+  }, o));
+
+  if (m * k > bloomDay.length) {
+    snap({foundIdx:-2, verdict:'IMPOSSIBLE', vclass:'hi',
+      desc:`Need ${m}×${k} = <b>${m*k}</b> flowers but only <b>${bloomDay.length}</b> exist. No day can ever work.`,
+      line:'precheck'});
+    return steps;
+  }
+
+  let lo = Math.min(...bloomDay), hi = Math.max(...bloomDay);
+  snap({lo, hi, verdict:'Init range', vclass:'info',
+    desc:`Earliest possible day is <b>${lo}</b> (first bloom), latest useful day is <b>${hi}</b> (everything has bloomed).`,
+    line:'scanRange'});
+
+  while (lo < hi) {
+    const mid = lo + Math.floor((hi - lo) / 2);
+    const { states, bouquets } = flowerStates(bloomDay, k, mid);
+    const feasible = bouquets >= m;
+
+    if (feasible) {
+      snap({lo, hi, mid, states, bouquets, feasible, verdict:'Feasible! · try earlier', vclass:'found',
+        desc:`By day <b>${mid}</b>, we can make <b>${bouquets}</b> bouquets (&ge; ${m}). Try an even earlier day. <b>hi = ${mid}</b>.`,
+        line:'setHi'});
+      hi = mid;
+    } else {
+      snap({lo, hi, mid, states, bouquets, feasible, verdict:'Not enough · wait longer', vclass:'hi',
+        desc:`By day <b>${mid}</b>, only <b>${bouquets}</b> bouquets are ready (&lt; ${m}). <b>lo = ${mid + 1}</b>.`,
+        line:'setLo'});
+      lo = mid + 1;
+    }
+  }
+
+  const { states, bouquets } = flowerStates(bloomDay, k, lo);
+  snap({lo, hi, foundIdx:lo, states, bouquets, verdict:'Answer found!', vclass:'found',
+    desc:`lo == hi == <b>${lo}</b> — earliest day with &ge; ${m} bouquets ready.`, line:'return'});
+
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const flowersEl=$('flowers'), codeEl=$('code'), verdictEl=$('verdict'), descEl=$('desc'),
+      resultChip=$('resultChip'), stepNow=$('stepNow'), stepTotal=$('stepTotal'),
+      dimLabel=$('dimLabel'), bouquetCountEl=$('bouquetCount'), mValEl=$('mVal'),
+      feasBadge=$('feasBadge'), track=$('track'), rangeFill=$('rangeFill'),
+      scaleMin=$('scaleMin'), scaleMax=$('scaleMax');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot-${cls||'lo'}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const [bloomDay, m, k] = PRESETS[idx];
+  steps = buildSteps(bloomDay, m, k);
+  cur=0;
+  dimLabel.textContent = `m=${m}, k=${k}`;
+  mValEl.textContent = m;
+  stepTotal.textContent = steps.length-1;
+  window.__bloomDay = bloomDay;
+  window.__minDay = Math.min(...bloomDay);
+  window.__maxDay = Math.max(...bloomDay);
+  scaleMin.textContent = window.__minDay;
+  scaleMax.textContent = window.__maxDay;
+  render();
+}
+
+function pct(v){
+  const min = window.__minDay, max = window.__maxDay;
+  if (max === min) return 50;
+  return ((v - min) / (max - min)) * 100;
+}
+
+function render(){
+  const s = steps[cur];
+  const bloomDay = window.__bloomDay;
+
+  // flowers
+  flowersEl.innerHTML = '';
+  bloomDay.forEach((b, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'flower';
+    const cell = document.createElement('div');
+    let cls = 'flower-cell';
+    const st = s.states ? s.states[i] : null;
+    if (st && st.bouquetIdx !== null) cls += ' in-bouquet';
+    else if (st && st.bloomed) cls += ' bloomed';
+    cell.className = cls;
+    cell.textContent = b;
+    wrap.appendChild(cell);
+    const tag = document.createElement('div');
+    tag.className = 'flower-tag';
+    tag.innerHTML = (st && st.bouquetIdx !== null) ? `bouquet <b>#${st.bouquetIdx+1}</b>` : '&nbsp;';
+    wrap.appendChild(tag);
+    flowersEl.appendChild(wrap);
+  });
+
+  bouquetCountEl.textContent = s.bouquets !== null && s.bouquets !== undefined ? s.bouquets : '—';
+  if (s.feasible === true) { feasBadge.className = 'feas-badge yes'; feasBadge.textContent = 'FEASIBLE'; }
+  else if (s.feasible === false) { feasBadge.className = 'feas-badge no'; feasBadge.textContent = 'NOT ENOUGH'; }
+  else { feasBadge.className = 'feas-badge pending'; feasBadge.textContent = '—'; }
+
+  // number line
+  track.querySelectorAll('.numline-marker').forEach(el => el.remove());
+  if (s.lo !== -1) {
+    rangeFill.style.left = pct(s.lo) + '%';
+    rangeFill.style.width = Math.max(0, pct(s.hi) - pct(s.lo)) + '%';
+    rangeFill.style.display = 'block';
+
+    function addMarker(cls, label, val){
+      const mk = document.createElement('div');
+      mk.className = `numline-marker ${cls}`;
+      mk.style.left = pct(val) + '%';
+      mk.innerHTML = `<div class="dot"></div><div class="val">${label}=${val}</div>`;
+      track.appendChild(mk);
+    }
+    addMarker('lo', 'lo', s.lo);
+    if (s.hi !== s.lo || s.foundIdx === -1) addMarker('hi', 'hi', s.hi);
+    if (s.mid !== -1) addMarker('mid', 'mid', s.mid);
+    if (s.foundIdx >= 0) addMarker('found', 'ans', s.foundIdx);
+  } else {
+    rangeFill.style.display = 'none';
+  }
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  descEl.innerHTML = s.desc || '';
+  if (s.foundIdx >= 0) {
+    resultChip.className = 'result-chip';
+    resultChip.textContent = `day = ${s.foundIdx}`;
+  } else if (s.foundIdx === -2) {
+    resultChip.className = 'result-chip empty';
+    resultChip.textContent = '-1 (impossible)';
+  } else {
+    resultChip.className = 'result-chip empty';
+    resultChip.textContent = 'not yet…';
+  }
+  renderCode(s.line, s.vclass==='found'?'found':(s.vclass==='mid'?'mid':(s.vclass==='hi'?'hi':'lo')));
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1400,1100,800,500,300][+$('speedSlider').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speedSlider').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
