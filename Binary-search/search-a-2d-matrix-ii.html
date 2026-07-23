@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Search a 2D Matrix II · Staircase Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --lo:#2F6DB5;
+    --lo-fill:#E3EEFA;
+    --hi:#C67A00;
+    --hi-fill:#FBEFD6;
+    --mid:#B5453B;
+    --mid-fill:#F7E3E0;
+    --found:#2E7D57;
+    --found-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(22px,4.2vw,38px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--mid);}
+  .sub{color:var(--ink-soft);max-width:72ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .sub b.tag-answer{color:var(--mid);}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:26px 22px 12px;}
+  .grid-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .matgrid{display:flex;flex-direction:column;gap:6px;align-items:center;}
+  .matrow{display:flex;gap:6px;}
+  .cell{
+    position:relative;
+    width:46px;height:42px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:13px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell.eliminated-col{background:var(--hi-fill);border-color:var(--hi);color:var(--hi);opacity:.35;}
+  .cell.eliminated-row{background:var(--lo-fill);border-color:var(--lo);color:var(--lo);opacity:.35;}
+  .cell.cursor{background:var(--mid-fill);border-color:var(--mid);color:var(--mid);transform:scale(1.12);z-index:2;}
+  .cell.found{background:var(--found-fill);border-color:var(--found);color:var(--found);transform:scale(1.12);z-index:2;}
+
+  .readout{
+    margin:24px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:112px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.lo{background:var(--lo-fill);color:var(--lo);}
+  .verdict.hi{background:var(--hi-fill);color:var(--hi);}
+  .verdict.found{background:var(--found-fill);color:var(--found);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.mid{background:var(--mid-fill);color:var(--mid);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:15px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .found-box{
+    padding:14px 18px 22px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .result-chip{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    background:var(--found-fill);border:1.5px solid var(--found);color:var(--found);
+    padding:6px 11px;border-radius:9px;display:inline-block;
+  }
+  .result-chip.empty{background:#fff;border-color:var(--line);color:var(--ink-soft);font-style:italic;font-weight:500;}
+  .result-chip.notfound{background:var(--hi-fill);border-color:var(--hi);color:var(--hi);font-style:normal;}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-lo{background:var(--lo-fill);}
+  pre.code .ln.hot-hi{background:var(--hi-fill);}
+  pre.code .ln.hot-mid{background:var(--mid-fill);}
+  pre.code .ln.hot-found{background:var(--found-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.lo{background:var(--lo-fill);border-color:var(--lo);}
+  .sw.hi{background:var(--hi-fill);border-color:var(--hi);}
+  .sw.mid{background:var(--mid-fill);border-color:var(--mid);}
+  .sw.found{background:var(--found-fill);border-color:var(--found);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{width:36px;height:34px;font-size:11px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Staircase Search (NOT pure binary search) · LeetCode 240 · Medium</div>
+    <h1>Search a 2D Matrix <span class="n">II</span></h1>
+    <p class="sub"><b class="tag-answer">Rows and columns are each sorted independently</b> — no cross-row
+    guarantee this time. Start at the <b>top-right corner</b>: too big → eliminate the whole column
+    (<code>col--</code>); too small → eliminate the whole row (<code>row++</code>). <code>O(m+n)</code>,
+    not <code>O(log(m·n))</code> — grouped here for the shared "shrink the search space" spirit.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(m + n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Staircase Search</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">target 5 (found)</button>
+    <button class="chip" data-preset="1">target 20 (not found)</button>
+    <button class="chip" data-preset="2">target 30 (bottom-right)</button>
+    <button class="chip" data-preset="3">target 1 (top-left)</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head">
+        <span>Matrix (rows & cols sorted)</span>
+        <span class="phase-badge" id="phaseBadge"></span>
+      </div>
+      <div class="board">
+        <div class="grid-label" id="rawLabel">5×5 matrix · target = 5</div>
+        <div class="matgrid" id="grid"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found-box">
+        <div class="found-head">Result</div>
+        <span class="result-chip empty" id="resultChip">not yet…</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw mid"></i> current cursor</span>
+    <span><i class="sw hi"></i> eliminated column</span>
+    <span><i class="sw lo"></i> eliminated row</span>
+    <span><i class="sw found"></i> target found</span>
+  </div>
+
+  <p class="foot">
+    Watch the cursor walk a staircase path from top-right. Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="kw">boolean</span> <span class="fn">searchMatrix</span>(<span class="kw">int</span>[][] matrix, <span class="kw">int</span> target) {', id:null},
+  {t:'  <span class="kw">int</span> m = matrix.length, n = matrix[0].length;', id:'init'},
+  {t:'  <span class="kw">int</span> row = 0, col = n - 1;   <span class="cmt">// top-right corner</span>', id:'init'},
+  {t:'', id:null},
+  {t:'  <span class="kw">while</span> (row &lt; m &amp;&amp; col &gt;= 0) {', id:'while'},
+  {t:'    <span class="kw">int</span> val = matrix[row][col];', id:'val'},
+  {t:'', id:null},
+  {t:'    <span class="kw">if</span> (val == target) {', id:'eqChk'},
+  {t:'      <span class="kw">return true</span>;', id:'retTrue'},
+  {t:'    } <span class="kw">else if</span> (val &gt; target) {', id:'gtChk'},
+  {t:'      col--;   <span class="cmt">// eliminate this column</span>', id:'colDec'},
+  {t:'    } <span class="kw">else</span> {', id:null},
+  {t:'      row++;   <span class="cmt">// eliminate this row</span>', id:'rowInc'},
+  {t:'    }', id:null},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">return false</span>;', id:'retFalse'},
+  {t:'}', id:null},
+];
+
+/* ---------- shared matrix ---------- */
+const MATRIX = [
+  [1,4,7,11,15],
+  [2,5,8,12,19],
+  [3,6,9,16,22],
+  [10,13,14,17,24],
+  [18,21,23,26,30],
+];
+
+/* ---------- presets: [target] ---------- */
+const PRESETS = [5, 20, 30, 1];
+
+/* ---------- step generator (mirrors the Java exactly) ---------- */
+function buildSteps(matrix, target){
+  const m = matrix.length, n = matrix[0].length;
+  const steps = [];
+  const snap = (o)=>steps.push(Object.assign({
+    row:-1, col:-1, foundRow:-1, foundCol:-1,
+    elimCols:[], elimRows:[],
+    verdict:'', vclass:'info', sumHtml:'', desc:'', line:null, notfound:false,
+  }, o));
+
+  let row = 0, col = n - 1;
+  const elimCols = [], elimRows = [];
+  snap({row, col, elimCols:[...elimCols], elimRows:[...elimRows], verdict:'Init', vclass:'info',
+    sumHtml:`row = 0, col = ${col}`,
+    desc:`Start at the top-right corner of the matrix.`, line:'init'});
+
+  while (row < m && col >= 0) {
+    const val = matrix[row][col];
+    snap({row, col, elimCols:[...elimCols], elimRows:[...elimRows], verdict:'Check cursor', vclass:'mid',
+      sumHtml:`matrix[${row}][${col}] = <b>${val}</b>`,
+      desc:`Comparing against target = ${target}.`, line:'val'});
+
+    if (val === target) {
+      snap({row, col, foundRow:row, foundCol:col, elimCols:[...elimCols], elimRows:[...elimRows],
+        verdict:'FOUND', vclass:'found',
+        sumHtml:`${val} <span class="op">==</span> ${target}`,
+        desc:`Target found at (row ${row}, col ${col}).`, line:'retTrue'});
+      return steps;
+    } else if (val > target) {
+      elimCols.push(col);
+      snap({row, col, elimCols:[...elimCols], elimRows:[...elimRows], verdict:'Too big · drop column', vclass:'hi',
+        sumHtml:`${val} <span class="op">&gt;</span> ${target}`,
+        desc:`Everything below in this column is even bigger. Eliminate column ${col}. <b>col = ${col - 1}</b>.`, line:'colDec'});
+      col--;
+    } else {
+      elimRows.push(row);
+      snap({row, col, elimCols:[...elimCols], elimRows:[...elimRows], verdict:'Too small · drop row', vclass:'lo',
+        sumHtml:`${val} <span class="op">&lt;</span> ${target}`,
+        desc:`Everything left in this row is even smaller. Eliminate row ${row}. <b>row = ${row + 1}</b>.`, line:'rowInc'});
+      row++;
+    }
+  }
+
+  snap({row, col, elimCols:[...elimCols], elimRows:[...elimRows], verdict:'NOT FOUND', vclass:'hi', notfound:true,
+    sumHtml:`cursor walked off the matrix`,
+    desc:`Target is not in the matrix.`, line:'retFalse'});
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const gridEl=$('grid'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), resultChip=$('resultChip'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'), rawLabel=$('rawLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot-${cls||'lo'}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const target = PRESETS[idx];
+  steps = buildSteps(MATRIX, target);
+  cur=0;
+  const m=MATRIX.length, n=MATRIX[0].length;
+  rawLabel.textContent = `${m}×${n} matrix · target = ${target}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  gridEl.innerHTML='';
+  MATRIX.forEach((row, r)=>{
+    const rowEl = document.createElement('div');
+    rowEl.className = 'matrow';
+    row.forEach((v, c)=>{
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      if (r === s.foundRow && c === s.foundCol) cell.classList.add('found');
+      else if (r === s.row && c === s.col) cell.classList.add('cursor');
+      else if (s.elimCols.includes(c)) cell.classList.add('eliminated-col');
+      else if (s.elimRows.includes(r)) cell.classList.add('eliminated-row');
+      cell.textContent = v;
+      rowEl.appendChild(cell);
+    });
+    gridEl.appendChild(rowEl);
+  });
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  if (s.foundRow !== -1) {
+    resultChip.className = 'result-chip';
+    resultChip.textContent = 'true (found)';
+  } else if (s.notfound) {
+    resultChip.className = 'result-chip notfound';
+    resultChip.textContent = 'false (not found)';
+  } else {
+    resultChip.className = 'result-chip empty';
+    resultChip.textContent = 'not yet…';
+  }
+  renderCode(s.line, s.vclass==='found'?'found':(s.vclass==='mid'?'mid':(s.vclass==='hi'?'hi':'lo')));
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

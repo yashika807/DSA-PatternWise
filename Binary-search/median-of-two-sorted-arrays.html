@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Median of Two Sorted Arrays · Partition Binary Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --lo:#2F6DB5;
+    --lo-fill:#E3EEFA;
+    --hi:#C67A00;
+    --hi-fill:#FBEFD6;
+    --mid:#B5453B;
+    --mid-fill:#F7E3E0;
+    --found:#2E7D57;
+    --found-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(22px,4.2vw,38px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--mid);}
+  .sub{color:var(--ink-soft);max-width:72ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .sub b.tag-answer{color:var(--mid);}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:30px 22px 8px;}
+  .arr-block{margin-bottom:26px;}
+  .arr-block:last-child{margin-bottom:8px;}
+  .arr-name{
+    font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);
+    margin-bottom:10px;letter-spacing:.06em;
+  }
+  .arr-name b{color:var(--ink);}
+  .arow{display:flex;gap:7px;flex-wrap:wrap;position:relative;}
+  .cell{
+    position:relative;
+    width:44px;height:44px;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:15px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, color .2s;
+  }
+  .cell.leftpart{background:var(--lo-fill);border-color:var(--lo);color:var(--lo);}
+  .cell.rightpart{background:var(--hi-fill);border-color:var(--hi);color:var(--hi);}
+  .cell.boundaryL{border-color:var(--mid);box-shadow:0 0 0 2px var(--mid-fill);}
+  .cell.boundaryR{border-color:var(--mid);box-shadow:0 0 0 2px var(--mid-fill);}
+  .cell.found{background:var(--found-fill);border-color:var(--found);color:var(--found);}
+  .cutline{
+    width:0;border-left:2.5px dashed var(--mid);
+    align-self:stretch;margin:0 -2px;
+  }
+  .ghost{
+    width:44px;height:44px;border-radius:9px;border:2px dashed var(--cell-line);
+    display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--ink-soft);
+  }
+
+  .readout{
+    margin:8px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:130px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.lo{background:var(--lo-fill);color:var(--lo);}
+  .verdict.hi{background:var(--hi-fill);color:var(--hi);}
+  .verdict.found{background:var(--found-fill);color:var(--found);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.mid{background:var(--mid-fill);color:var(--mid);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:14px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .found-box{
+    padding:14px 18px 22px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .result-chip{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    background:var(--found-fill);border:1.5px solid var(--found);color:var(--found);
+    padding:6px 11px;border-radius:9px;display:inline-block;
+  }
+  .result-chip.empty{background:#fff;border-color:var(--line);color:var(--ink-soft);font-style:italic;font-weight:500;}
+
+  .code-scroll{max-height:640px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.7;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-lo{background:var(--lo-fill);}
+  pre.code .ln.hot-hi{background:var(--hi-fill);}
+  pre.code .ln.hot-mid{background:var(--mid-fill);}
+  pre.code .ln.hot-found{background:var(--found-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:22px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.lo{background:var(--lo-fill);border-color:var(--lo);}
+  .sw.hi{background:var(--hi-fill);border-color:var(--hi);}
+  .sw.mid{background:var(--mid-fill);border-color:var(--mid);}
+  .sw.found{background:var(--found-fill);border-color:var(--found);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell,.ghost{width:36px;height:36px;font-size:12px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Binary Search on Partition Point · LeetCode 4 · Hard</div>
+    <h1>Median of <span class="n">Two Sorted Arrays</span></h1>
+    <p class="sub"><b class="tag-answer">The hardest one in the folder.</b> We binary search
+    <code>cut1</code> — how many elements of the SHORTER array go in the "left half" — while
+    <code>cut2 = totalLeft - cut1</code> is derived, not searched. A partition is valid when
+    <code>l1 &le; r2</code> and <code>l2 &le; r1</code> — the four boundary values around both cuts.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(log(min(m,n)))</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Binary Search on Partition Point</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[1,3] & [2] (odd)</button>
+    <button class="chip" data-preset="1">[1,2] & [3,4] (even)</button>
+    <button class="chip" data-preset="2">[] & [1] (empty)</button>
+    <button class="chip" data-preset="3">[1,2,3,4,5] & [6..10]</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>Two sorted arrays</span><span id="dimLabel"></span></div>
+      <div class="board">
+        <div class="arr-block">
+          <div class="arr-name">A (shorter, binary-searched) — <b id="labelA"></b></div>
+          <div class="arow" id="rowA"></div>
+        </div>
+        <div class="arr-block">
+          <div class="arr-name">B (longer, derived cut) — <b id="labelB"></b></div>
+          <div class="arow" id="rowB"></div>
+        </div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found-box">
+        <div class="found-head">Median</div>
+        <span class="result-chip empty" id="resultChip">not yet…</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw lo"></i> left half of partition</span>
+    <span><i class="sw hi"></i> right half of partition</span>
+    <span><i class="sw mid"></i> boundary elements (l1,l2,r1,r2)</span>
+    <span><i class="sw found"></i> median source</span>
+  </div>
+
+  <p class="foot">
+    The dashed line is the cut in each array. Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="kw">double</span> <span class="fn">findMedianSortedArrays</span>(<span class="kw">int</span>[] nums1, <span class="kw">int</span>[] nums2) {', id:null},
+  {t:'  <span class="kw">if</span> (nums1.length &gt; nums2.length)', id:'swap'},
+  {t:'    <span class="kw">return</span> findMedianSortedArrays(nums2, nums1);   <span class="cmt">// A = shorter</span>', id:'swap'},
+  {t:'', id:null},
+  {t:'  <span class="kw">int</span> n1 = nums1.length, n2 = nums2.length;', id:'init'},
+  {t:'  <span class="kw">int</span> lo = 0, hi = n1;', id:'init'},
+  {t:'  <span class="kw">int</span> totalLeft = (n1 + n2 + 1) / 2;', id:'init'},
+  {t:'', id:null},
+  {t:'  <span class="kw">while</span> (lo &lt;= hi) {', id:'while'},
+  {t:'    <span class="kw">int</span> cut1 = lo + (hi - lo) / 2;', id:'cut1'},
+  {t:'    <span class="kw">int</span> cut2 = totalLeft - cut1;', id:'cut2'},
+  {t:'', id:null},
+  {t:'    <span class="kw">int</span> l1 = (cut1==0) ? MIN : nums1[cut1-1];', id:'l1'},
+  {t:'    <span class="kw">int</span> l2 = (cut2==0) ? MIN : nums2[cut2-1];', id:'l2'},
+  {t:'    <span class="kw">int</span> r1 = (cut1==n1) ? MAX : nums1[cut1];', id:'r1'},
+  {t:'    <span class="kw">int</span> r2 = (cut2==n2) ? MAX : nums2[cut2];', id:'r2'},
+  {t:'', id:null},
+  {t:'    <span class="kw">if</span> (l1 &lt;= r2 &amp;&amp; l2 &lt;= r1) {', id:'validChk'},
+  {t:'      <span class="kw">if</span> ((n1+n2) % 2 == 0)', id:'evenChk'},
+  {t:'        <span class="kw">return</span> (Math.max(l1,l2) + Math.min(r1,r2)) / 2.0;', id:'retEven'},
+  {t:'      <span class="kw">else return</span> Math.max(l1, l2);', id:'retOdd'},
+  {t:'    } <span class="kw">else if</span> (l1 &gt; r2) {', id:'l1GtR2'},
+  {t:'      hi = cut1 - 1;   <span class="cmt">// A took too much, shrink</span>', id:'setHi'},
+  {t:'    } <span class="kw">else</span> {', id:null},
+  {t:'      lo = cut1 + 1;   <span class="cmt">// A took too little, grow</span>', id:'setLo'},
+  {t:'    }', id:null},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">throw new</span> IllegalArgumentException();', id:null},
+  {t:'}', id:null},
+];
+
+/* ---------- presets: [nums1, nums2] (raw, unswapped, as user would call) ---------- */
+const PRESETS = [
+  [[1,3], [2]],
+  [[1,2], [3,4]],
+  [[], [1]],
+  [[1,2,3,4,5], [6,7,8,9,10]],
+];
+
+const INF = Infinity, NEG = -Infinity;
+
+/* ---------- step generator (mirrors the Java exactly, incl. the swap) ---------- */
+function buildSteps(rawA, rawB){
+  const steps = [];
+  const snap = (o)=>steps.push(Object.assign({
+    cut1:-1, cut2:-1, lo:-1, hi:-1, l1:null,l2:null,r1:null,r2:null,
+    verdict:'', vclass:'info', sumHtml:'', desc:'', line:null, resultVal:null,
+  }, o));
+
+  let A = rawA, B = rawB, swapped = false;
+  if (A.length > B.length) { [A, B] = [B, A]; swapped = true; }
+
+  const n1 = A.length, n2 = B.length;
+  let lo = 0, hi = n1;
+  const totalLeft = Math.floor((n1 + n2 + 1) / 2);
+
+  snap({lo, hi, verdict: swapped ? 'Swapped (A must be shorter)' : 'Init', vclass:'info',
+    sumHtml:`n1=${n1}, n2=${n2}, totalLeft=${totalLeft}`,
+    desc: swapped ? `Original nums1 was longer, so arrays were swapped — A is now the shorter array.` : `Binary searching cut1 over A (the shorter array), 0..${n1}.`,
+    line: swapped ? 'swap' : 'init'});
+
+  while (lo <= hi) {
+    const cut1 = lo + Math.floor((hi - lo) / 2);
+    const cut2 = totalLeft - cut1;
+
+    const l1 = (cut1 === 0) ? NEG : A[cut1 - 1];
+    const l2 = (cut2 === 0) ? NEG : B[cut2 - 1];
+    const r1 = (cut1 === n1) ? INF : A[cut1];
+    const r2 = (cut2 === n2) ? INF : B[cut2];
+
+    snap({lo, hi, cut1, cut2, l1, l2, r1, r2, verdict:'Check partition', vclass:'mid',
+      sumHtml:`cut1=${cut1}, cut2=${cut2}  ·  l1=${fmt(l1)}, l2=${fmt(l2)}, r1=${fmt(r1)}, r2=${fmt(r2)}`,
+      desc:`Checking if l1 &le; r2 and l2 &le; r1.`, line:'r2'});
+
+    if (l1 <= r2 && l2 <= r1) {
+      let val;
+      if ((n1 + n2) % 2 === 0) {
+        val = (Math.max(l1,l2) + Math.min(r1,r2)) / 2;
+        snap({lo, hi, cut1, cut2, l1, l2, r1, r2, resultVal: val, verdict:'Valid partition! · EVEN', vclass:'found',
+          sumHtml:`(max(${fmt(l1)},${fmt(l2)}) + min(${fmt(r1)},${fmt(r2)})) / 2 = <b>${val}</b>`,
+          desc:`Total length even → average the two middle boundary values.`, line:'retEven'});
+      } else {
+        val = Math.max(l1,l2);
+        snap({lo, hi, cut1, cut2, l1, l2, r1, r2, resultVal: val, verdict:'Valid partition! · ODD', vclass:'found',
+          sumHtml:`max(${fmt(l1)}, ${fmt(l2)}) = <b>${val}</b>`,
+          desc:`Total length odd → median is the larger of the two left-boundary values.`, line:'retOdd'});
+      }
+      return steps;
+    } else if (l1 > r2) {
+      snap({lo, hi, cut1, cut2, l1, l2, r1, r2, verdict:'A took too much', vclass:'hi',
+        sumHtml:`l1=${fmt(l1)} &gt; r2=${fmt(r2)}`,
+        desc:`A's left half reaches too far. Shrink. <b>hi = ${cut1 - 1}</b>.`, line:'setHi'});
+      hi = cut1 - 1;
+    } else {
+      snap({lo, hi, cut1, cut2, l1, l2, r1, r2, verdict:'A took too little', vclass:'lo',
+        sumHtml:`l2=${fmt(l2)} &gt; r1=${fmt(r1)}`,
+        desc:`A's left half is too small. Grow. <b>lo = ${cut1 + 1}</b>.`, line:'setLo'});
+      lo = cut1 + 1;
+    }
+  }
+
+  return steps;
+}
+
+function fmt(v){
+  if (v === INF) return '+&infin;';
+  if (v === NEG) return '-&infin;';
+  return v;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const rowAEl=$('rowA'), rowBEl=$('rowB'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), resultChip=$('resultChip'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'), dimLabel=$('dimLabel'),
+      labelA=$('labelA'), labelB=$('labelB');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot-${cls||'lo'}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const [rawA, rawB] = PRESETS[idx];
+  let A = rawA, B = rawB;
+  if (A.length > B.length) [A, B] = [B, A];
+  steps = buildSteps(rawA, rawB);
+  cur=0;
+  dimLabel.textContent = `n1=${A.length}, n2=${B.length}`;
+  labelA.textContent = `[${A.join(', ')}]`;
+  labelB.textContent = `[${B.join(', ')}]`;
+  stepTotal.textContent = steps.length-1;
+  window.__A = A; window.__B = B;
+  render();
+}
+
+function renderRow(el, arr, cut, l, r){
+  el.innerHTML = '';
+  if (arr.length === 0) {
+    const g = document.createElement('div');
+    g.className = 'ghost';
+    g.textContent = 'empty';
+    el.appendChild(g);
+    return;
+  }
+  arr.forEach((v, i) => {
+    if (cut !== -1 && i === cut) {
+      const cl = document.createElement('div');
+      cl.className = 'cutline';
+      el.appendChild(cl);
+    }
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if (cut !== -1) cell.classList.add(i < cut ? 'leftpart' : 'rightpart');
+    if (cut !== -1 && i === cut - 1) cell.classList.add('boundaryL');
+    if (cut !== -1 && i === cut) cell.classList.add('boundaryR');
+    cell.textContent = v;
+    el.appendChild(cell);
+  });
+  if (cut !== -1 && cut === arr.length) {
+    const cl = document.createElement('div');
+    cl.className = 'cutline';
+    el.appendChild(cl);
+  }
+}
+
+function render(){
+  const s = steps[cur];
+  const A = window.__A, B = window.__B;
+
+  renderRow(rowAEl, A, s.cut1 !== undefined ? s.cut1 : -1);
+  renderRow(rowBEl, B, s.cut2 !== undefined ? s.cut2 : -1);
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  if (s.resultVal !== null && s.resultVal !== undefined) {
+    resultChip.className = 'result-chip';
+    resultChip.textContent = `median = ${s.resultVal}`;
+  } else {
+    resultChip.className = 'result-chip empty';
+    resultChip.textContent = 'not yet…';
+  }
+  renderCode(s.line, s.vclass==='found'?'found':(s.vclass==='mid'?'mid':(s.vclass==='hi'?'hi':'lo')));
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1400,1100,800,500,300][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

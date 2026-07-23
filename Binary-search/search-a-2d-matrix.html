@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Search a 2D Matrix · Flattened Binary Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6;
+    --grid:#E3E8EE;
+    --ink:#17233D;
+    --ink-soft:#5A6B86;
+
+    --lo:#2F6DB5;
+    --lo-fill:#E3EEFA;
+    --hi:#C67A00;
+    --hi-fill:#FBEFD6;
+    --mid:#B5453B;
+    --mid-fill:#F7E3E0;
+    --found:#2E7D57;
+    --found-fill:#E4F1E9;
+
+    --cell-fill:#FFFFFF;
+    --cell-line:#D6DEE7;
+    --skip:#B7C0CD;
+    --accent:#2F6DB5;
+    --rail:#EEF2F7;
+    --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:"Space Grotesk", system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 72px;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);font-weight:500;
+  }
+  h1{
+    font-size:clamp(24px,4.6vw,40px);
+    font-weight:700;letter-spacing:-.02em;
+    margin:4px 0 10px;
+  }
+  h1 .n{color:var(--mid);}
+  .sub{color:var(--ink-soft);max-width:72ch;font-size:15px;}
+  .sub code{
+    font-family:"JetBrains Mono",monospace;font-size:.9em;
+    background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);
+  }
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:6px 11px;color:var(--ink-soft);
+  }
+  .tag b{color:var(--ink);}
+
+  .stage{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:26px;
+  }
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+  }
+
+  .board{padding:26px 22px 12px;}
+  .grid-label{
+    font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;
+  }
+  .matgrid{display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .matrow{display:flex;gap:8px;}
+  .cell{
+    position:relative;
+    width:58px;height:52px;border-radius:10px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:16px;
+    background:var(--cell-fill);border:2px solid var(--cell-line);
+    color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;
+  }
+  .cell .idx{
+    font-size:9px;font-weight:500;color:var(--ink-soft);position:absolute;top:2px;left:5px;
+  }
+  .cell.lo{background:var(--lo-fill);border-color:var(--lo);color:var(--lo);}
+  .cell.hi{background:var(--hi-fill);border-color:var(--hi);color:var(--hi);}
+  .cell.mid{background:var(--mid-fill);border-color:var(--mid);color:var(--mid);transform:translateY(-3px);}
+  .cell.found{background:var(--found-fill);border-color:var(--found);color:var(--found);transform:translateY(-3px);}
+  .cell.eliminated{opacity:.28;}
+
+  .flag{
+    position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;white-space:nowrap;
+    box-shadow:0 2px 6px -3px rgba(23,35,61,.5);
+  }
+  .flag.lo{background:var(--lo);color:#fff;}
+  .flag.hi{background:var(--hi);color:#fff;}
+  .flag.mid{background:var(--mid);color:#fff;}
+
+  .readout{
+    margin:30px 12px 4px;padding:16px 18px;border-radius:12px;
+    background:var(--rail);border:1px solid var(--line);
+    min-height:112px;
+  }
+  .verdict{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    letter-spacing:.04em;margin-bottom:8px;display:inline-block;
+    padding:3px 9px;border-radius:6px;
+  }
+  .verdict.lo{background:var(--lo-fill);color:var(--lo);}
+  .verdict.hi{background:var(--hi-fill);color:var(--hi);}
+  .verdict.found{background:var(--found-fill);color:var(--found);}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.mid{background:var(--mid-fill);color:var(--mid);}
+  .sum-line{
+    font-family:"JetBrains Mono",monospace;font-size:15px;color:var(--ink);
+    margin:2px 0;
+  }
+  .sum-line .op{color:var(--ink-soft);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .found-box{
+    padding:14px 18px 22px;border-top:1px solid var(--line);margin-top:6px;
+  }
+  .found-head{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .result-chip{
+    font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+    background:var(--found-fill);border:1.5px solid var(--found);color:var(--found);
+    padding:6px 11px;border-radius:9px;display:inline-block;
+  }
+  .result-chip.empty{background:#fff;border-color:var(--line);color:var(--ink-soft);font-style:italic;font-weight:500;}
+  .result-chip.notfound{background:var(--hi-fill);border-color:var(--hi);color:var(--hi);font-style:normal;}
+
+  .code-scroll{max-height:560px;overflow:auto;}
+  pre.code{
+    margin:0;padding:18px 16px;
+    font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.75;
+    color:var(--ink);tab-size:2;
+  }
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-lo{background:var(--lo-fill);}
+  pre.code .ln.hot-hi{background:var(--hi-fill);}
+  pre.code .ln.hot-mid{background:var(--mid-fill);}
+  pre.code .ln.hot-found{background:var(--found-fill);}
+  .cmt{color:var(--ink-soft);}
+  .kw{color:#8250DF;}
+  .fn{color:#1F6FEB;}
+
+  .controls{
+    display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+    margin-top:22px;padding:14px 16px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  button{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:9px 15px;border-radius:10px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);
+    font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{
+    font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;
+  }
+  .count b{color:var(--ink);}
+
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{
+    font-family:"JetBrains Mono",monospace;font-size:12px;
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;
+  }
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.lo{background:var(--lo-fill);border-color:var(--lo);}
+  .sw.hi{background:var(--hi-fill);border-color:var(--hi);}
+  .sw.mid{background:var(--mid-fill);border-color:var(--mid);}
+  .sw.found{background:var(--found-fill);border-color:var(--found);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr;}
+    .code-scroll{max-height:340px;}
+    .cell{width:44px;height:42px;font-size:13px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Binary Search · LeetCode 74 · Medium</div>
+    <h1>Search a <span class="n">2D Matrix</span></h1>
+    <p class="sub">Rows are sorted, and each row's first element beats the previous row's last —
+    so the whole matrix behaves like <b>one flat sorted array</b>. We binary search over a flattened index
+    <code>0 .. m*n-1</code>, mapping <code>mid</code> to <code>row = mid / n, col = mid % n</code>.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(log(m·n))</span>
+      <span class="tag"><b>Space</b>&nbsp; O(1)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Binary Search — Flattened 2D Array</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">target 3 (found)</button>
+    <button class="chip" data-preset="1">target 13 (not found)</button>
+    <button class="chip" data-preset="2">target 60 (last cell)</button>
+    <button class="chip" data-preset="3">[1] single cell</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head">
+        <span>Matrix (row-sorted, row-chained)</span>
+        <span class="phase-badge" id="phaseBadge"></span>
+      </div>
+      <div class="board">
+        <div class="grid-label" id="rawLabel">3×4 matrix · target = 3</div>
+        <div class="matgrid" id="grid"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="sum-line" id="sumLine">Press <b>Play</b> or <b>Next</b> to begin.</div>
+        <div class="desc" id="desc"></div>
+      </div>
+      <div class="found-box">
+        <div class="found-head">Result</div>
+        <span class="result-chip empty" id="resultChip">not yet…</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll">
+        <pre class="code" id="code"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw lo"></i> <code style="font-family:'JetBrains Mono'">lo</code></span>
+    <span><i class="sw hi"></i> <code style="font-family:'JetBrains Mono'">hi</code></span>
+    <span><i class="sw mid"></i> <code style="font-family:'JetBrains Mono'">mid</code></span>
+    <span><i class="sw found"></i> target found</span>
+  </div>
+
+  <p class="foot">
+    Small number top-left of each cell is its flattened index (<code>row*n + col</code>). Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.
+  </p>
+</div>
+
+<script>
+/* ---------- code with line ids ---------- */
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> <span class="kw">boolean</span> <span class="fn">searchMatrix</span>(<span class="kw">int</span>[][] matrix, <span class="kw">int</span> target) {', id:null},
+  {t:'  <span class="kw">int</span> m = matrix.length, n = matrix[0].length;', id:'init'},
+  {t:'  <span class="kw">int</span> lo = 0, hi = m * n - 1;', id:'init'},
+  {t:'', id:null},
+  {t:'  <span class="kw">while</span> (lo &lt;= hi) {', id:'while'},
+  {t:'    <span class="kw">int</span> mid = lo + (hi - lo) / 2;', id:'mid'},
+  {t:'', id:null},
+  {t:'    <span class="kw">int</span> row = mid / n;   <span class="cmt">// flat idx → row</span>', id:'row'},
+  {t:'    <span class="kw">int</span> col = mid % n;   <span class="cmt">// flat idx → col</span>', id:'col'},
+  {t:'    <span class="kw">int</span> val = matrix[row][col];', id:'val'},
+  {t:'', id:null},
+  {t:'    <span class="kw">if</span> (val == target) {', id:'eqChk'},
+  {t:'      <span class="kw">return true</span>;', id:'retTrue'},
+  {t:'    } <span class="kw">else if</span> (val &lt; target) {', id:'ltChk'},
+  {t:'      lo = mid + 1;', id:'setLo'},
+  {t:'    } <span class="kw">else</span> {', id:null},
+  {t:'      hi = mid - 1;', id:'setHi'},
+  {t:'    }', id:null},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">return false</span>;', id:'retFalse'},
+  {t:'}', id:null},
+];
+
+/* ---------- presets: [matrix, target] ---------- */
+const PRESETS = [
+  [[[1,3,5,7],[10,11,16,20],[23,30,34,60]], 3],
+  [[[1,3,5,7],[10,11,16,20],[23,30,34,60]], 13],
+  [[[1,3,5,7],[10,11,16,20],[23,30,34,60]], 60],
+  [[[1]], 1],
+];
+
+/* ---------- step generator (mirrors the Java exactly) ---------- */
+function buildSteps(matrix, target){
+  const m = matrix.length, n = matrix[0].length;
+  const steps = [];
+  const snap = (o)=>steps.push(Object.assign({
+    lo:-1, hi:-1, mid:-1, foundIdx:-1,
+    verdict:'', vclass:'info', sumHtml:'', desc:'', line:null, notfound:false,
+  }, o));
+
+  let lo = 0, hi = m*n - 1;
+  snap({lo, hi, verdict:'Init', vclass:'info',
+    sumHtml:`lo = 0, hi = ${hi}`,
+    desc:`Flattened index range across the whole ${m}×${n} matrix.`, line:'init'});
+
+  while (lo <= hi) {
+    const mid = lo + Math.floor((hi-lo)/2);
+    const row = Math.floor(mid / n), col = mid % n;
+    const val = matrix[row][col];
+    snap({lo, hi, mid, verdict:'Check mid', vclass:'mid',
+      sumHtml:`mid = ${mid} → row=${row}, col=${col} → matrix[${row}][${col}] = <b>${val}</b>`,
+      desc:`Comparing against target = ${target}.`, line:'val'});
+
+    if (val === target) {
+      snap({lo, hi, mid, foundIdx:mid, verdict:'FOUND', vclass:'found',
+        sumHtml:`${val} <span class="op">==</span> ${target}`,
+        desc:`Target found at flattened index ${mid} (row ${row}, col ${col}).`, line:'retTrue'});
+      return steps;
+    } else if (val < target) {
+      snap({lo, hi, mid, verdict:'Too small', vclass:'lo',
+        sumHtml:`${val} <span class="op">&lt;</span> ${target}`,
+        desc:`Target is further along. <b>lo = ${mid + 1}</b>.`, line:'setLo'});
+      lo = mid + 1;
+    } else {
+      snap({lo, hi, mid, verdict:'Too big', vclass:'hi',
+        sumHtml:`${val} <span class="op">&gt;</span> ${target}`,
+        desc:`Target is earlier. <b>hi = ${mid - 1}</b>.`, line:'setHi'});
+      hi = mid - 1;
+    }
+  }
+
+  snap({lo, hi, verdict:'NOT FOUND', vclass:'hi', notfound:true,
+    sumHtml:`lo (${lo}) &gt; hi (${hi})`,
+    desc:`Range exhausted — target is not in the matrix.`, line:'retFalse'});
+  return steps;
+}
+
+/* ---------- render ---------- */
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+
+const $ = id=>document.getElementById(id);
+const gridEl=$('grid'), codeEl=$('code'), verdictEl=$('verdict'),
+      sumEl=$('sumLine'), descEl=$('desc'), resultChip=$('resultChip'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'), rawLabel=$('rawLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot-${cls||'lo'}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const [matrix, target] = PRESETS[idx];
+  steps = buildSteps(matrix, target);
+  cur=0;
+  const m=matrix.length, n=matrix[0].length;
+  rawLabel.textContent = `${m}×${n} matrix · target = ${target}`;
+  stepTotal.textContent = steps.length-1;
+  window.__matrix = matrix;
+  window.__n = n;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  const matrix = window.__matrix;
+  const n = window.__n;
+  gridEl.innerHTML='';
+  matrix.forEach((row, r)=>{
+    const rowEl = document.createElement('div');
+    rowEl.className = 'matrow';
+    row.forEach((v, c)=>{
+      const flatIdx = r*n + c;
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      if (flatIdx < s.lo || flatIdx > s.hi) {
+        if (flatIdx !== s.foundIdx) cell.classList.add('eliminated');
+      }
+      if (flatIdx === s.foundIdx) cell.classList.add('found');
+      else if (flatIdx === s.mid) cell.classList.add('mid');
+      cell.innerHTML = `<span class="idx">${flatIdx}</span>${v}`;
+      if (flatIdx === s.lo) { const f=document.createElement('div'); f.className='flag lo'; f.textContent='lo'; cell.appendChild(f); }
+      if (flatIdx === s.hi) { const f=document.createElement('div'); f.className='flag hi'; f.textContent='hi'; cell.appendChild(f); }
+      if (flatIdx === s.mid) { const f=document.createElement('div'); f.className='flag mid'; f.textContent='mid'; cell.appendChild(f); }
+      rowEl.appendChild(cell);
+    });
+    gridEl.appendChild(rowEl);
+  });
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.innerHTML = s.verdict;
+  sumEl.innerHTML = s.sumHtml || '&nbsp;';
+  descEl.innerHTML = s.desc || '';
+  if (s.foundIdx !== -1) {
+    resultChip.className = 'result-chip';
+    resultChip.textContent = 'true (found)';
+  } else if (s.notfound) {
+    resultChip.className = 'result-chip notfound';
+    resultChip.textContent = 'false (not found)';
+  } else {
+    resultChip.className = 'result-chip empty';
+    resultChip.textContent = 'not yet…';
+  }
+  renderCode(s.line, s.vclass==='found'?'found':(s.vclass==='mid'?'mid':(s.vclass==='hi'?'hi':'lo')));
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
