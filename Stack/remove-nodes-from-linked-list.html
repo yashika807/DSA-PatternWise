@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Remove Nodes From Linked List · Stack Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6; --grid:#E3E8EE; --ink:#17233D; --ink-soft:#5A6B86;
+    --cur:#2F6DB5; --cur-fill:#E3EEFA;
+    --push:#2E7D57; --push-fill:#E4F1E9;
+    --pop:#B5453B; --pop-fill:#F7E3E0;
+    --idle-fill:#FFFFFF; --idle-line:#D6DEE7;
+    --accent:#2F6DB5; --rail:#EEF2F7; --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper);
+    background-image:linear-gradient(var(--grid) 1px, transparent 1px),linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;color:var(--ink); font-family:"Space Grotesk", system-ui, sans-serif; line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1160px;margin:0 auto;padding:32px 20px 72px;}
+  header{margin-bottom:26px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;}
+  h1{font-size:clamp(22px,5vw,36px);font-weight:700;letter-spacing:-.02em;margin:4px 0 10px;}
+  .sub{color:var(--ink-soft);max-width:76ch;font-size:15px;}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 11px;color:var(--ink-soft);}
+  .tag b{color:var(--ink);}
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:12px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;}
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .stage{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:22px;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+
+  .chainzone{padding:22px 18px 8px;overflow-x:auto;}
+  .chain-label{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);margin-bottom:12px;letter-spacing:.08em;}
+  .chain{display:flex;align-items:center;gap:2px;flex-wrap:nowrap;min-width:max-content;padding-top:26px;min-height:56px;}
+  .node{position:relative;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:17px;background:var(--idle-fill);border:2px solid var(--idle-line);color:var(--ink);
+    transition:background .2s, border-color .2s, opacity .2s;flex:none;}
+  .node.cur{background:var(--cur-fill);border-color:var(--cur);color:var(--cur);}
+  .node.discarded{background:var(--pop-fill);border-color:var(--pop);color:var(--pop);opacity:.45;text-decoration:line-through;}
+  .node.survivor{background:var(--push-fill);border-color:var(--push);color:var(--push);}
+  .node .tag2{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap;background:var(--cur);color:#fff;}
+  .arrow{font-family:"JetBrains Mono",monospace;color:var(--ink-soft);font-size:16px;padding:0 3px;flex:none;}
+  .nullcap{font-family:"JetBrains Mono",monospace;color:var(--ink-soft);font-size:12px;border:1px dashed var(--line);border-radius:6px;padding:4px 8px;flex:none;}
+
+  .readout{margin:8px 18px 4px;padding:14px 18px;border-radius:12px;background:var(--rail);border:1px solid var(--line);min-height:96px;}
+  .verdict{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.04em;margin-bottom:8px;display:inline-block;padding:3px 9px;border-radius:6px;}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.push{background:var(--push-fill);color:var(--push);}
+  .verdict.pop{background:var(--pop-fill);color:var(--pop);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .resultzone{padding:14px 18px 22px;border-top:1px solid var(--line);}
+  .result-label{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);margin-bottom:12px;letter-spacing:.08em;}
+  .result-chain{display:flex;align-items:center;gap:2px;flex-wrap:nowrap;min-height:44px;overflow-x:auto;}
+  .empty-note{color:var(--ink-soft);font-size:12.5px;font-style:italic;}
+
+  .stackzone{padding:16px 18px 22px;border-top:1px solid var(--line);}
+  .stack-head{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:12px;display:flex;justify-content:space-between;}
+  .stackcol{display:flex;flex-direction:column-reverse;align-items:center;gap:6px;min-height:170px;justify-content:flex-start;}
+  .sbox{width:56px;height:38px;border-radius:9px;background:var(--push-fill);border:2px solid var(--push);color:var(--push);
+    display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",monospace;font-weight:700;font-size:16px;animation:pushin .25s ease;}
+  .sbox.top{box-shadow:0 0 0 3px rgba(46,125,87,.18);}
+  .sbox.popping{background:var(--pop-fill);border-color:var(--pop);color:var(--pop);}
+  @keyframes pushin{from{transform:translateY(10px) scale(.85);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+  .stackfloor{width:72px;height:4px;background:var(--ink-soft);opacity:.25;border-radius:2px;margin-top:4px;}
+  .stack-empty{color:var(--ink-soft);font-size:12.5px;font-style:italic;margin-top:12px;}
+
+  .code-scroll{max-height:640px;overflow:auto;}
+  pre.code{margin:0;padding:18px 16px;font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.7;color:var(--ink);tab-size:2;}
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-push{background:var(--push-fill);}
+  pre.code .ln.hot-pop{background:var(--pop-fill);}
+  pre.code .ln.hot-cur{background:var(--cur-fill);}
+  .cmt{color:var(--ink-soft);} .kw{color:#8250DF;} .fn{color:#1F6FEB;} .ty{color:#0969DA;}
+
+  .controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  button{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 15px;border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s,transform .05s;}
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+  .count b{color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.cur{background:var(--cur-fill);border-color:var(--cur);}
+  .sw.push{background:var(--push-fill);border-color:var(--push);}
+  .sw.pop{background:var(--pop-fill);border-color:var(--pop);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){.stage{grid-template-columns:1fr;}.code-scroll{max-height:340px;}.node{width:38px;height:38px;font-size:15px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Stack · Monotonic Decreasing · Linked List · LeetCode 2487 · Medium</div>
+    <h1>Remove Nodes From Linked List</h1>
+    <p class="sub">Nodes ko ek stack pe plates ki tarah rakho, left se right. Jab bhi ek <b style="color:var(--cur)">bhaari plate</b> (bada value) aati hai, neeche ki <b style="color:var(--pop)">halki plates</b> gir jaati hain (permanently discard) — kyunki unke "right" mein ek bada node mil gaya. Jo end tak <b style="color:var(--push)">stack mein tike</b> rehte hain, wahi final answer hai.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Monotonic Decreasing Stack (Linked List)</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">[5,2,13,3,8]</button>
+    <button class="chip" data-preset="1">[1,2,3,4,5]</button>
+    <button class="chip" data-preset="2">[5,4,3,2,1]</button>
+    <button class="chip" data-preset="3">[1,1,1,1]</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>Original list</span><span id="dimLabel">n = 5</span></div>
+      <div class="chainzone">
+        <div class="chain-label" id="rawLabel">head = [5, 2, 13, 3, 8]</div>
+        <div class="chain" id="chain"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="desc" id="desc">Press <b>Play</b> or <b>Next</b> to begin.</div>
+      </div>
+      <div class="stackzone">
+        <div class="stack-head"><span>Stack of nodes (bottom → top, values decreasing)</span><span id="stackSize">size 0</span></div>
+        <div class="stackcol" id="stackcol"></div>
+      </div>
+      <div class="resultzone">
+        <div class="result-label">Result list (rebuilt from survivors)</div>
+        <div class="result-chain" id="resultChain"><span class="empty-note">not built yet…</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll"><pre class="code" id="code"></pre></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw cur"></i> current node being visited</span>
+    <span><i class="sw push"></i> survivor — currently in stack</span>
+    <span><i class="sw pop"></i> discarded (popped — a bigger node was found to its right)</span>
+  </div>
+
+  <p class="foot">Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.</p>
+</div>
+
+<script>
+const CODE_LINES = [
+  {t:'<span class="kw">class</span> ListNode {', id:null},
+  {t:'  <span class="ty">int</span> val; ListNode next;', id:null},
+  {t:'  ListNode(<span class="ty">int</span> val, ListNode next) { <span class="kw">this</span>.val=val; <span class="kw">this</span>.next=next; }', id:null},
+  {t:'}', id:null},
+  {t:'', id:null},
+  {t:'ListNode <span class="fn">removeNodes</span>(ListNode head) {', id:null},
+  {t:'  Deque&lt;ListNode&gt; stack = <span class="kw">new</span> ArrayDeque&lt;&gt;();', id:null},
+  {t:'  ListNode cur = head;', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">while</span> (cur != <span class="kw">null</span>) {', id:'loop'},
+  {t:'    <span class="kw">while</span> (!stack.isEmpty()', id:'while'},
+  {t:'        &amp;&amp; stack.peek().val &lt; cur.val) {', id:'while'},
+  {t:'      stack.pop();        <span class="cmt">// discard — smaller, will be removed</span>', id:'pop'},
+  {t:'    }', id:null},
+  {t:'    stack.push(cur);      <span class="cmt">// survives for now</span>', id:'push'},
+  {t:'    cur = cur.next;', id:'advance'},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="cmt">// relink survivors, popping top→bottom</span>', id:null},
+  {t:'  ListNode next = <span class="kw">null</span>;', id:null},
+  {t:'  <span class="kw">while</span> (!stack.isEmpty()) {', id:'relinkLoop'},
+  {t:'    ListNode node = stack.pop();', id:'relinkPop'},
+  {t:'    node.next = next;', id:'relinkSet'},
+  {t:'    next = node;', id:'relinkAdvance'},
+  {t:'  }', id:null},
+  {t:'  <span class="kw">return</span> next;', id:'return'},
+  {t:'}', id:null},
+];
+
+const PRESETS = [[5,2,13,3,8],[1,2,3,4,5],[5,4,3,2,1],[1,1,1,1]];
+
+function buildSteps(vals){
+  const n = vals.length;
+  const steps = [];
+  const stack = [];        // array of node-ids currently in stack
+  const discarded = new Set();
+  let resultOrder = [];    // final order (ids), built during phase 2
+
+  const snap = (o)=>steps.push(Object.assign({
+    vals, n, curId:-1, verdict:'', vclass:'info', desc:'', line:null,
+    stack:[...stack], discarded:new Set(discarded), phase:1, resultOrder:[...resultOrder],
+  }, o));
+
+  snap({verdict:'Phase 1: scan + build stack', vclass:'info', desc:'List traverse karenge left to right, ek monotonic decreasing stack of NODES maintain karte hue.', line:'loop', phase:1});
+
+  for(let i=0;i<n;i++){
+    snap({curId:i, verdict:'Visit node', vclass:'cur', desc:`Node ${i} (val <b>${vals[i]}</b>) ko dekh rahe hain. Stack ke top se compare karenge.`, line:'while', phase:1});
+
+    while(stack.length && vals[stack[stack.length-1]] < vals[i]){
+      const popped = stack.pop();
+      discarded.add(popped);
+      snap({curId:i, verdict:'POP · discard!', vclass:'pop',
+        desc:`Stack top (node ${popped}, val ${vals[popped]}) < ${vals[i]} — node ${popped} ke right mein ek bada node mil gaya. <b>Permanently discard.</b>`,
+        line:'pop', phase:1, stack:[...stack], discarded:new Set(discarded)});
+    }
+
+    stack.push(i);
+    snap({curId:i, verdict:'PUSH · survives (for now)', vclass:'push', desc:`Node ${i} (val ${vals[i]}) push ho gaya — abhi ke liye survive kar gaya.`, line:'push', phase:1, stack:[...stack]});
+  }
+
+  snap({verdict:'Phase 1 done', vclass:'push', desc:`Poori list traverse ho gayi. Stack mein bache ${stack.length} node(s) hi final survivors hain, left-to-right order mein (bottom→top).`, line:'relinkLoop', phase:1, stack:[...stack]});
+
+  // Phase 2: relink
+  snap({verdict:'Phase 2: relink', vclass:'push', desc:'Ab stack se pop karte hue (top se, matlab reverse order mein) result list ko wapas jodenge.', line:'relinkLoop', phase:2, stack:[...stack]});
+
+  let next = [];  // ids in final order, front = current head
+  while(stack.length){
+    const node = stack.pop();
+    snap({curId:node, verdict:'POP (relink)', vclass:'pop', desc:`Node ${node} (val ${vals[node]}) pop hua — yeh ab tak bane result list ke <b>front</b> mein jud jaayega.`, line:'relinkPop', phase:2, stack:[...stack]});
+    next = [node, ...next];
+    resultOrder = [...next];
+    snap({curId:node, verdict:'node.next = next', vclass:'push', desc:`node ${node}.next set kiya. Result list ab: <b>[${resultOrder.map(id=>vals[id]).join(', ')}]</b>`, line:'relinkSet', phase:2, stack:[...stack], resultOrder:[...resultOrder]});
+  }
+
+  snap({verdict:'Done', vclass:'push', desc:`Final result list: <b>[${resultOrder.map(id=>vals[id]).join(', ')}]</b> ✅`, line:'return', phase:2, stack:[], resultOrder:[...resultOrder]});
+
+  return steps;
+}
+
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+const $ = id=>document.getElementById(id);
+const chainEl=$('chain'), codeEl=$('code'), verdictEl=$('verdict'), descEl=$('desc'),
+      stackcolEl=$('stackcol'), stackSizeEl=$('stackSize'), resultChainEl=$('resultChain'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'), rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(pIdx){
+  presetIdx=pIdx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===pIdx));
+  const raw = PRESETS[pIdx];
+  steps = buildSteps(raw);
+  cur=0;
+  rawLabel.textContent = `head = [${raw.join(', ')}]`;
+  dimLabel.textContent = `n = ${raw.length}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function makeNodeEl(val, cls, tagText){
+  const wrap=document.createElement('div');
+  wrap.style.position='relative';
+  const n=document.createElement('div');
+  n.className='node'+(cls?(' '+cls):'');
+  n.textContent=val;
+  if(tagText){
+    const t=document.createElement('div'); t.className='tag2'; t.textContent=tagText;
+    n.appendChild(t);
+  }
+  wrap.appendChild(n);
+  return wrap;
+}
+
+function render(){
+  const s = steps[cur];
+  const inStack = new Set(s.stack);
+
+  chainEl.innerHTML='';
+  s.vals.forEach((v,idx)=>{
+    let cls='';
+    if(s.discarded.has(idx)) cls='discarded';
+    else if(inStack.has(idx)) cls='survivor';
+    const tag = idx===s.curId ? 'cur' : null;
+    const wrap = makeNodeEl(v, idx===s.curId ? 'cur' : cls, tag);
+    chainEl.appendChild(wrap);
+    if(idx<s.vals.length-1){
+      const arrow=document.createElement('div'); arrow.className='arrow'; arrow.textContent='→';
+      chainEl.appendChild(arrow);
+    }
+  });
+  const nullcap=document.createElement('div'); nullcap.className='nullcap'; nullcap.textContent='null';
+  const arrow2=document.createElement('div'); arrow2.className='arrow'; arrow2.textContent='→';
+  chainEl.appendChild(arrow2);
+  chainEl.appendChild(nullcap);
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.textContent = s.verdict;
+  descEl.innerHTML = s.desc || '';
+
+  stackcolEl.innerHTML='';
+  s.stack.forEach((idx,si)=>{
+    const b=document.createElement('div');
+    b.className='sbox' + (si===s.stack.length-1 ? ' top':'');
+    b.textContent=s.vals[idx];
+    stackcolEl.appendChild(b);
+  });
+  if(s.stack.length===0){
+    const e=document.createElement('div'); e.className='stack-empty'; e.textContent='empty stack';
+    stackcolEl.appendChild(e);
+  }
+  const floor=document.createElement('div'); floor.className='stackfloor';
+  stackcolEl.appendChild(floor);
+  stackSizeEl.textContent = `size ${s.stack.length}`;
+
+  resultChainEl.innerHTML='';
+  if(s.resultOrder.length===0){
+    resultChainEl.innerHTML = '<span class="empty-note">not built yet…</span>';
+  } else {
+    s.resultOrder.forEach((idx,pos)=>{
+      const wrap = makeNodeEl(s.vals[idx], 'survivor', null);
+      resultChainEl.appendChild(wrap);
+      if(pos<s.resultOrder.length-1){
+        const arrow=document.createElement('div'); arrow.className='arrow'; arrow.textContent='→';
+        resultChainEl.appendChild(arrow);
+      }
+    });
+    const arrow3=document.createElement('div'); arrow3.className='arrow'; arrow3.textContent='→';
+    const nullcap3=document.createElement('div'); nullcap3.className='nullcap'; nullcap3.textContent='null';
+    resultChainEl.appendChild(arrow3);
+    resultChainEl.appendChild(nullcap3);
+  }
+
+  let cls='';
+  if(s.line==='push') cls='-push';
+  else if(s.line==='pop'||s.line==='relinkPop') cls='-pop';
+  else if(s.line==='while'||s.line==='loop') cls='-cur';
+  else if(s.line==='relinkSet'||s.line==='relinkAdvance'||s.line==='relinkLoop'||s.line==='return') cls='-push';
+  renderCode(s.line, cls);
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>

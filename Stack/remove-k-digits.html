@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Remove K Digits · Stack Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBFAF6; --grid:#E3E8EE; --ink:#17233D; --ink-soft:#5A6B86;
+    --cur:#2F6DB5; --cur-fill:#E3EEFA;
+    --push:#2E7D57; --push-fill:#E4F1E9;
+    --pop:#B5453B; --pop-fill:#F7E3E0;
+    --strip:#C67A00; --strip-fill:#FBEFD6;
+    --idle-fill:#FFFFFF; --idle-line:#D6DEE7;
+    --accent:#2F6DB5; --rail:#EEF2F7; --line:#D6DEE7;
+    --shadow:0 1px 0 rgba(23,35,61,.04), 0 8px 30px -18px rgba(23,35,61,.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--paper);
+    background-image:linear-gradient(var(--grid) 1px, transparent 1px),linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;color:var(--ink); font-family:"Space Grotesk", system-ui, sans-serif; line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1160px;margin:0 auto;padding:32px 20px 72px;}
+  header{margin-bottom:26px;}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;}
+  h1{font-size:clamp(24px,5vw,38px);font-weight:700;letter-spacing:-.02em;margin:4px 0 10px;}
+  .sub{color:var(--ink-soft);max-width:76ch;font-size:15px;}
+  .sub code{font-family:"JetBrains Mono",monospace;font-size:.9em;background:var(--rail);padding:1px 5px;border-radius:5px;color:var(--ink);}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 11px;color:var(--ink-soft);}
+  .tag b{color:var(--ink);}
+  .tag.budget{background:var(--strip-fill);border-color:var(--strip);color:var(--strip);font-weight:700;}
+  .presets{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+  .presets .lbl{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);letter-spacing:.06em;}
+  .chip{font-family:"JetBrains Mono",monospace;font-size:12px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:5px 10px;border-radius:8px;cursor:pointer;transition:.15s;}
+  .chip:hover{background:var(--rail);color:var(--ink);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .stage{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:22px;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+
+  .board{padding:24px 22px 6px;}
+  .arr-label{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-soft);margin-bottom:14px;letter-spacing:.08em;}
+  .arr{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;position:relative;padding-top:30px;min-height:44px;}
+  .cell{position:relative;width:42px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-family:"JetBrains Mono",monospace;font-weight:700;font-size:18px;background:var(--idle-fill);border:2px solid var(--idle-line);color:var(--ink);
+    transition:background .2s, border-color .2s, transform .2s, color .2s, opacity .2s;}
+  .cell .idx{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:500;color:var(--ink-soft);}
+  .cell.done{opacity:.32;}
+  .cell.cur{background:var(--cur-fill);border-color:var(--cur);color:var(--cur);transform:translateY(-3px);}
+  .cell.push{background:var(--push-fill);border-color:var(--push);color:var(--push);}
+  .flag{position:absolute;top:-2px;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 6px -3px rgba(23,35,61,.5);background:var(--cur);color:#fff;}
+
+  .readout{margin:8px 12px 4px;padding:14px 18px;border-radius:12px;background:var(--rail);border:1px solid var(--line);min-height:96px;}
+  .verdict{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.04em;margin-bottom:8px;display:inline-block;padding:3px 9px;border-radius:6px;}
+  .verdict.info{background:#fff;color:var(--ink-soft);border:1px solid var(--line);}
+  .verdict.push{background:var(--push-fill);color:var(--push);}
+  .verdict.pop{background:var(--pop-fill);color:var(--pop);}
+  .verdict.strip{background:var(--strip-fill);color:var(--strip);}
+  .desc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;}
+  .desc b{color:var(--ink);}
+
+  .stackzone{padding:16px 18px 22px;border-top:1px solid var(--line);}
+  .stack-head{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:12px;display:flex;justify-content:space-between;}
+  .stackcol{display:flex;flex-direction:column-reverse;align-items:center;gap:6px;min-height:170px;justify-content:flex-start;}
+  .sbox{width:56px;height:38px;border-radius:9px;background:var(--push-fill);border:2px solid var(--push);color:var(--push);
+    display:flex;align-items:center;justify-content:center;font-family:"JetBrains Mono",monospace;font-weight:700;font-size:18px;animation:pushin .25s ease;}
+  .sbox.top{box-shadow:0 0 0 3px rgba(46,125,87,.18);}
+  .sbox.strip{background:var(--strip-fill);border-color:var(--strip);color:var(--strip);}
+  @keyframes pushin{from{transform:translateY(10px) scale(.85);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+  .stackfloor{width:72px;height:4px;background:var(--ink-soft);opacity:.25;border-radius:2px;margin-top:4px;}
+  .stack-empty{color:var(--ink-soft);font-size:12.5px;font-style:italic;margin-top:12px;}
+
+  .result{padding:14px 18px 22px;border-top:1px solid var(--line);}
+  .result-head{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px;}
+  .result-val{font-family:"JetBrains Mono",monospace;font-size:20px;font-weight:700;color:var(--push);min-height:26px;}
+  .result-val .empty{color:var(--ink-soft);font-size:13px;font-style:italic;font-weight:400;}
+
+  .code-scroll{max-height:640px;overflow:auto;}
+  pre.code{margin:0;padding:18px 16px;font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.72;color:var(--ink);tab-size:2;}
+  pre.code .ln{display:block;padding:0 8px;border-radius:5px;transition:background .18s;}
+  pre.code .ln.hot-push{background:var(--push-fill);}
+  pre.code .ln.hot-pop{background:var(--pop-fill);}
+  pre.code .ln.hot-cur{background:var(--cur-fill);}
+  pre.code .ln.hot-strip{background:var(--strip-fill);}
+  .cmt{color:var(--ink-soft);} .kw{color:#8250DF;} .fn{color:#1F6FEB;} .ty{color:#0969DA;}
+
+  .controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  button{font-family:"Space Grotesk",sans-serif;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 15px;border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s,transform .05s;}
+  button:hover{background:var(--rail);}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  button.primary:hover{background:#2860a3;}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .spacer{flex:1;}
+  .speed{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;}
+  input[type=range]{accent-color:var(--accent);}
+  .count{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+  .count b{color:var(--ink);}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:5px;border:1.5px solid;}
+  .sw.cur{background:var(--cur-fill);border-color:var(--cur);}
+  .sw.push{background:var(--push-fill);border-color:var(--push);}
+  .sw.pop{background:var(--pop-fill);border-color:var(--pop);}
+  .sw.strip{background:var(--strip-fill);border-color:var(--strip);}
+
+  .foot{margin-top:24px;font-size:13px;color:var(--ink-soft);}
+  .foot code{font-family:"JetBrains Mono",monospace;background:var(--rail);padding:1px 5px;border-radius:5px;}
+
+  @media (max-width:860px){.stage{grid-template-columns:1fr;}.code-scroll{max-height:340px;}.cell{width:36px;height:38px;font-size:16px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Stack · Monotonic Increasing · LeetCode 402 · Hard</div>
+    <h1>Remove K Digits</h1>
+    <p class="sub">Number ko chhota karne ka sabse tez tareeka: <b>leftmost bade digits</b> ko <b style="color:var(--pop)">discard</b> karo jab bhi koi chhota digit unke right mein aaye — jab tak budget (<code>k</code>) bacha ho. Increasing stack banta hai — chhote digits left mein, bade sirf tab tak jab tak koi unse chhota na aaye.</p>
+    <div class="meta">
+      <span class="tag"><b>Time</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Space</b>&nbsp; O(n)</span>
+      <span class="tag"><b>Pattern</b>&nbsp; Monotonic Increasing Stack</span>
+      <span class="tag budget" id="budgetTag">k remaining: 3</span>
+    </div>
+  </header>
+
+  <div class="presets">
+    <span class="lbl">EXAMPLE:</span>
+    <button class="chip active" data-preset="0">"1432219", k=3</button>
+    <button class="chip" data-preset="1">"10200", k=1</button>
+    <button class="chip" data-preset="2">"10", k=2</button>
+    <button class="chip" data-preset="3">"112", k=1</button>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="panel-head"><span>num</span><span id="dimLabel">n = 7, k = 3</span></div>
+      <div class="board">
+        <div class="arr-label" id="rawLabel">num = "1432219", k=3</div>
+        <div class="arr" id="arr"></div>
+      </div>
+      <div class="readout" id="readout">
+        <span class="verdict info" id="verdict">Ready</span>
+        <div class="desc" id="desc">Press <b>Play</b> or <b>Next</b> to begin.</div>
+      </div>
+      <div class="stackzone">
+        <div class="stack-head"><span>Stack of digits (bottom → top, increasing)</span><span id="stackSize">size 0</span></div>
+        <div class="stackcol" id="stackcol"></div>
+      </div>
+      <div class="result">
+        <div class="result-head">Result (after leading-zero strip)</div>
+        <div class="result-val" id="resultVal"><span class="empty">— running…</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><span>Solution.java</span><span>Java</span></div>
+      <div class="code-scroll"><pre class="code" id="code"></pre></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">◀ Prev</button>
+    <button id="playBtn" class="primary">▶ Play</button>
+    <button id="nextBtn">Next ▶</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="spacer"></div>
+    <div class="speed">speed <input type="range" id="speed" min="1" max="5" value="3" /></div>
+    <div class="count">step <b id="stepNow">0</b> / <span id="stepTotal">0</span></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw cur"></i> current digit</span>
+    <span><i class="sw push"></i> pushed onto stack</span>
+    <span><i class="sw pop"></i> popped — bigger digit discarded (budget used)</span>
+    <span><i class="sw strip"></i> trailing-k cleanup / leading-zero strip</span>
+  </div>
+
+  <p class="foot">Keyboard: <code>←</code> / <code>→</code> step, <code>space</code> play/pause.</p>
+</div>
+
+<script>
+const CODE_LINES = [
+  {t:'<span class="kw">public</span> String <span class="fn">removeKdigits</span>(String num, <span class="ty">int</span> k) {', id:null},
+  {t:'  Deque&lt;Character&gt; stack = <span class="kw">new</span> ArrayDeque&lt;&gt;();  <span class="cmt">// increasing</span>', id:null},
+  {t:'', id:null},
+  {t:'  <span class="kw">for</span> (<span class="ty">char</span> c : num.toCharArray()) {', id:'loop'},
+  {t:'    <span class="kw">while</span> (!stack.isEmpty() &amp;&amp; k &gt; 0', id:'while'},
+  {t:'        &amp;&amp; stack.peek() &gt; c) {', id:'while'},
+  {t:'      stack.pop();  k--;    <span class="cmt">// discard bigger digit</span>', id:'pop'},
+  {t:'    }', id:null},
+  {t:'    stack.push(c);', id:'push'},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  <span class="cmt">// still budget left? string was non-decreasing —</span>', id:null},
+  {t:'  <span class="cmt">// biggest digits are at the end, trim from there</span>', id:null},
+  {t:'  <span class="kw">while</span> (k &gt; 0 &amp;&amp; !stack.isEmpty()) {', id:'trailLoop'},
+  {t:'    stack.pop();  k--;', id:'trailPop'},
+  {t:'  }', id:null},
+  {t:'', id:null},
+  {t:'  StringBuilder sb = <span class="kw">new</span> StringBuilder();', id:null},
+  {t:'  <span class="kw">while</span> (!stack.isEmpty()) sb.append(stack.pop());', id:'build'},
+  {t:'  sb.reverse();', id:'build'},
+  {t:'', id:null},
+  {t:'  <span class="ty">int</span> i = 0;', id:null},
+  {t:'  <span class="kw">while</span> (i &lt; sb.length()-1 &amp;&amp; sb.charAt(i)==\'0\') i++;   <span class="cmt">// strip zeros</span>', id:'strip'},
+  {t:'  String result = sb.substring(i);', id:'strip'},
+  {t:'', id:null},
+  {t:'  <span class="kw">return</span> result.isEmpty() ? <span class="ty">"0"</span> : result;', id:'return'},
+  {t:'}', id:null},
+];
+
+const PRESETS = [
+  {num:"1432219", k:3},
+  {num:"10200", k:1},
+  {num:"10", k:2},
+  {num:"112", k:1},
+];
+
+function buildSteps(num, kInit){
+  const digits = num.split('');
+  const steps = [];
+  const stack = [];
+  let k = kInit;
+
+  const snap = (o)=>steps.push(Object.assign({
+    digits, kInit, i:-1, verdict:'', vclass:'info', desc:'', line:null,
+    stack:[...stack], doneUpTo:-1, action:null, k, result:null,
+  }, o));
+
+  snap({verdict:'Start', vclass:'info', desc:`Budget k = ${k}. Increasing stack banayenge — bade digits ko chhote digits ke aane pe discard karenge.`, line:'loop'});
+
+  for(let i=0;i<digits.length;i++){
+    const c = digits[i];
+    snap({i, verdict:'Inspect digit', vclass:'info', desc:`Current digit <b>'${c}'</b> (index ${i}). Stack ke top se compare, budget k=${k}.`, line:'while', doneUpTo:i-1, action:'cur', k});
+
+    while(stack.length && k>0 && stack[stack.length-1] > c){
+      const popped = stack.pop();
+      k--;
+      snap({i, verdict:'POP · discard bigger', vclass:'pop', desc:`Top '${popped}' &gt; '${c}' aur budget bacha hai — '${popped}' ko discard karo (number chhota banega). k: ${k+1}→${k}`, line:'pop', doneUpTo:i-1, action:'pop', k, stack:[...stack]});
+    }
+
+    stack.push(c);
+    snap({i, verdict:'PUSH', vclass:'push', desc:`'${c}' ko push kar diya.`, line:'push', doneUpTo:i-1, action:'push', k, stack:[...stack]});
+  }
+
+  snap({verdict:'Main loop done', vclass:'push', desc: k>0 ? `Loop khatam par budget k=${k} abhi bhi bacha hai — string yahan tak non-decreasing thi. Trailing digits (stack ke top) se hatayenge.` : 'Loop khatam, budget poora use ho gaya.', line:'trailLoop', doneUpTo:digits.length-1, k, stack:[...stack]});
+
+  while(k>0 && stack.length){
+    const popped = stack.pop();
+    k--;
+    snap({verdict:'POP · trailing cleanup', vclass:'strip', desc:`Bacha hua budget use karte hue stack ke top se '${popped}' hataya (sabse right/bada digit). k: ${k+1}→${k}`, line:'trailPop', doneUpTo:digits.length-1, k, stack:[...stack]});
+  }
+
+  const rawResult = stack.join('');
+  snap({verdict:'Build + strip zeros', vclass:'strip', desc:`Stack se result bana: <b>"${rawResult||'(empty)'}"</b>. Ab leading zeros strip karenge.`, line:'strip', doneUpTo:digits.length-1, k, stack:[...stack]});
+
+  let stripped = rawResult;
+  let idx=0;
+  while(idx < stripped.length-1 && stripped[idx]==='0') idx++;
+  stripped = stripped.slice(idx);
+  if(stripped==='') stripped='0';
+
+  snap({verdict:'Done', vclass:'push', desc:`Final result: <b>"${stripped}"</b> ✅`, line:'return', doneUpTo:digits.length-1, k, stack:[...stack], result:stripped});
+
+  return steps;
+}
+
+let steps=[], cur=0, playing=false, timer=null, presetIdx=0;
+const $ = id=>document.getElementById(id);
+const arrEl=$('arr'), codeEl=$('code'), verdictEl=$('verdict'), descEl=$('desc'),
+      stackcolEl=$('stackcol'), stackSizeEl=$('stackSize'), resultEl=$('resultVal'), budgetTag=$('budgetTag'),
+      stepNow=$('stepNow'), stepTotal=$('stepTotal'), rawLabel=$('rawLabel'), dimLabel=$('dimLabel');
+
+function renderCode(hotId, cls){
+  codeEl.innerHTML = CODE_LINES.map(l=>{
+    const hot = (l.id && l.id===hotId) ? ` hot${cls||''}` : '';
+    return `<span class="ln${hot}">${l.t || '&nbsp;'}</span>`;
+  }).join('');
+}
+
+function loadPreset(idx){
+  presetIdx=idx;
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active', i===idx));
+  const {num,k} = PRESETS[idx];
+  steps = buildSteps(num,k);
+  cur=0;
+  rawLabel.textContent = `num = "${num}", k=${k}`;
+  dimLabel.textContent = `n = ${num.length}, k = ${k}`;
+  stepTotal.textContent = steps.length-1;
+  render();
+}
+
+function render(){
+  const s = steps[cur];
+  arrEl.innerHTML='';
+  s.digits.forEach((d,idx)=>{
+    const c=document.createElement('div');
+    c.className='cell';
+    let flag=null;
+    if(idx<=s.doneUpTo) c.classList.add('done');
+    if(idx===s.i){
+      if(s.action==='pop') c.classList.add('cur');
+      else if(s.action==='push') c.classList.add('push');
+      else c.classList.add('cur');
+      flag='i';
+    }
+    c.innerHTML = `<span class="idx">${idx}</span>${d}`;
+    if(flag){ const fl=document.createElement('div'); fl.className='flag'; fl.textContent=flag; c.appendChild(fl); }
+    arrEl.appendChild(c);
+  });
+
+  verdictEl.className = `verdict ${s.vclass}`;
+  verdictEl.textContent = s.verdict;
+  descEl.innerHTML = s.desc || '';
+
+  budgetTag.textContent = `k remaining: ${s.k}`;
+
+  stackcolEl.innerHTML='';
+  s.stack.forEach((d,si)=>{
+    const b=document.createElement('div');
+    b.className='sbox' + (si===s.stack.length-1 ? ' top':'') + (s.vclass==='strip' ? ' strip':'');
+    b.textContent=d;
+    stackcolEl.appendChild(b);
+  });
+  if(s.stack.length===0){
+    const e=document.createElement('div'); e.className='stack-empty'; e.textContent='empty stack';
+    stackcolEl.appendChild(e);
+  }
+  const floor=document.createElement('div'); floor.className='stackfloor';
+  stackcolEl.appendChild(floor);
+  stackSizeEl.textContent = `size ${s.stack.length}`;
+
+  resultEl.innerHTML = s.result!==null ? `"${s.result}"` : '<span class="empty">— running…</span>';
+
+  let cls='';
+  if(s.line==='push') cls='-push';
+  else if(s.line==='pop') cls='-pop';
+  else if(s.line==='while'||s.line==='loop') cls='-cur';
+  else if(s.line==='trailPop'||s.line==='strip') cls='-strip';
+  else if(s.line==='trailLoop'||s.line==='build'||s.line==='return') cls='-push';
+  renderCode(s.line, cls);
+  stepNow.textContent=cur;
+  $('prevBtn').disabled = cur===0;
+  $('nextBtn').disabled = cur===steps.length-1;
+}
+
+function next(){ if(cur<steps.length-1){cur++;render();} else stop(); }
+function prev(){ if(cur>0){cur--;render();} }
+function stop(){ playing=false; clearInterval(timer); $('playBtn').innerHTML='▶ Play'; }
+function play(){
+  if(playing){stop();return;}
+  if(cur===steps.length-1) cur=0;
+  playing=true; $('playBtn').innerHTML='⏸ Pause';
+  const delay=[0,1100,850,600,380,220][+$('speed').value];
+  timer=setInterval(()=>{ if(cur<steps.length-1) next(); else stop(); }, delay);
+}
+function reset(){ stop(); cur=0; render(); }
+
+$('nextBtn').onclick=()=>{stop();next();};
+$('prevBtn').onclick=()=>{stop();prev();};
+$('playBtn').onclick=play;
+$('resetBtn').onclick=reset;
+$('speed').oninput=()=>{ if(playing){stop();play();} };
+document.querySelectorAll('.chip').forEach((c,i)=>c.onclick=()=>{stop();loadPreset(i);});
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stop();next();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stop();prev();}
+  else if(e.key===' '){e.preventDefault();play();}
+});
+
+loadPreset(0);
+</script>
+</body>
+</html>
