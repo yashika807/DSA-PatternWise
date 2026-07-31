@@ -12,7 +12,7 @@ Every problem gets two files, side by side in its pattern folder:
 
 | File | What's in it |
 |---|---|
-| **`<problem>.md`** | The writeup — problem statement, an intuition/story section that explains *why* the pattern applies here, brute force → optimal Java (often Python too), a dry-run table, complexity, and a gotchas list of the exact off-by-one/edge-case traps that bite in an interview. |
+| **`<problem>.md`** | The writeup — problem statement, an intuition/story section that explains *why* the pattern applies here, brute force → optimal Java, a dry-run table, complexity, and a gotchas list of the exact off-by-one/edge-case traps that bite in an interview. |
 | **`<problem>.html`** | A self-contained, interactive step-through visualizer — press play and watch the actual pointers/window/stack/heap move, synced line-by-line against the real Java solution. No external dependencies, opens directly in a browser. |
 
 Writeups are in Hinglish — that's just the voice this repo is written in, it doesn't affect the code.
