@@ -2,8 +2,6 @@
 
 A pattern-first DSA interview-prep reference — every problem is grouped by the underlying **technique**, not by topic, because the technique is what actually transfers to a new question in an interview.
 
-🔗 **[Browse the live visualizers →](https://yashika807.github.io/DSA-PatternWise/)**
-
 **92 problems across 10 core patterns** (plus a few bonus array/matrix warm-ups below).
 
 ---
